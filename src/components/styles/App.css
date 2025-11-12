@@ -1,0 +1,252 @@
+/* Paleta de 2001: A Space Odyssey */
+:root {
+  /* Variables de color y layout */
+  --deep-space: #0b0c10;
+  --tech-gray: #2c2f33;
+  --hal-red: #ff2e2e;
+  --cold-white: #e5e5e5;
+  --star-blue: #1a73e8;
+  --metallic-silver: #b0b0b0;
+  --hal-orange: #ff8c32;
+  --header-height: 56px;
+
+  /* 🔑 VARIABLES PARA LAYOUT DINÁMICO */
+  --creation-panel-width: 250px;
+  --config-panel-width: 300px;
+}
+
+/* Estilos generales */
+body,
+html,
+#root {
+  height: 100%;
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background-color: var(--deep-space);
+  color: var(--cold-white);
+}
+
+.app-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100vw;
+  position: relative;
+}
+
+/* ----------------------------------
+   Contenedor Principal de React Flow
+   ---------------------------------- */
+
+.main-content {
+  flex-grow: 1;
+  position: relative;
+
+  /* 🔑 CLAVE: Estado Base (Ningún panel de desplazamiento): ancho 100%, margen 0 */
+  margin-left: 0;
+  width: 100%;
+
+  transition:
+    margin-left 0.3s ease-in-out,
+    width 0.3s ease-in-out;
+}
+
+/* 1. Panel de Creación visible (shifted-left) */
+.main-content.shifted-left {
+  margin-left: var(--creation-panel-width);
+  /* El ancho se ajusta para dejar espacio al panel izquierdo */
+  width: calc(100% - var(--creation-panel-width));
+}
+
+/* 2. Panel de Configuración visible (shifted-right) */
+.main-content.shifted-right {
+  width: calc(100% - var(--config-panel-width));
+}
+
+/* 3. Ambos paneles visibles */
+.main-content.shifted-left.shifted-right {
+  margin-left: var(--creation-panel-width);
+  width: calc(100% - var(--creation-panel-width) - var(--config-panel-width));
+}
+
+/* ----------------------------------
+   AJUSTE DE APILAMIENTO (Z-INDEX)
+   ---------------------------------- */
+
+/* 🔑 CLAVE: Controles de React Flow por debajo de los paneles */
+.react-flow__controls {
+  z-index: 10 !important;
+  /* Reducido de 100 a 10 */
+  transition:
+    left 0.3s ease-in-out,
+    bottom 0.3s ease-in-out;
+}
+
+/* Ajustar posición de controles cuando panel izquierdo está abierto */
+.main-content.shifted-left .react-flow__controls {
+  left: 20px;
+  /* Margen desde el borde del panel izquierdo */
+}
+
+/* MiniMap: ajustar posición */
+.react-flow__minimap {
+  border: 1px solid var(--metallic-silver);
+  border-radius: 4px;
+  background-color: var(--deep-space);
+  z-index: 10 !important;
+  right: 200px;
+  /* 🔑 Posición normal cerca del borde */
+  transition: right 0.3s ease-in-out;
+}
+
+/* Ajustar MiniMap cuando panel derecho está abierto */
+.main-content.shifted-right .react-flow__minimap {
+  right: calc(var(--config-panel-width) + 5px);
+  /* 🔑 Solo 5px de separación del panel */
+}
+
+/* Paneles base (solo estilo visual general) */
+.panel {
+  background-color: var(--tech-gray);
+  color: var(--cold-white);
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+}
+
+.panel-left {
+  border-right: 1px solid var(--metallic-silver);
+  z-index: 30;
+  /* Por encima de controles pero debajo de header */
+}
+
+/* Header y Footer: fijos en el flujo, no se encogen, por encima de los paneles */
+.header,
+.footer {
+  padding: 0 20px;
+  background-color: var(--tech-gray);
+  color: var(--cold-white);
+  border-color: var(--metallic-silver);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  z-index: 100;
+  /* Por encima de todo */
+}
+
+.header {
+  border-bottom: 1px solid var(--metallic-silver);
+  height: var(--header-height);
+}
+
+.footer {
+  border-top: 1px solid var(--metallic-silver);
+  justify-content: space-between;
+  gap: 10px;
+  height: 60px;
+}
+
+/* Área de flujo */
+.flow-area {
+  flex-grow: 1;
+  height: 100%;
+  width: 100%;
+  position: relative;
+  background-color: var(--deep-space);
+}
+
+/* Botones de creación de nodos */
+.btn-node {
+  width: 120px;
+  height: 40px;
+  background-color: var(--hal-orange);
+  color: var(--deep-space);
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 5px auto;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.btn-node:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 10px rgba(255, 140, 50, 0.5);
+}
+
+/* =============================== */
+/* Sobrescribir estilos de React Flow para nodos compactos */
+
+/* Nodo base */
+.react-flow__node {
+  min-width: unset !important;
+  min-height: unset !important;
+  padding: 0 !important;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 5;
+  /* Por debajo de controles y paneles */
+}
+
+/* Handles más pequeños y discretos */
+.react-flow__handle {
+  width: 8px;
+  height: 8px;
+  background-color: var(--metallic-silver);
+}
+
+/* Edges/conexiones */
+.react-flow__edge {
+  z-index: 4;
+  /* Por debajo de nodos */
+}
+
+/* Botones secundarios */
+.btn-node-tertiary {
+  background-color: var(--star-blue);
+  color: var(--cold-white);
+}
+
+.btn-node-tertiary:hover {
+  background-color: #1565c0;
+  box-shadow: 0 0 10px rgba(26, 115, 232, 0.5);
+}
+
+.btn-node-quaternary {
+  background-color: #ffb703;
+  color: var(--deep-space);
+}
+
+.btn-node-quaternary:hover {
+  background-color: #ffca3a;
+  box-shadow: 0 0 10px rgba(255, 183, 3, 0.6);
+}
+
+/* ----------------------------------
+   RESPONSIVIDAD
+   ---------------------------------- */
+
+@media (max-width: 1024px) {
+  :root {
+    --creation-panel-width: 220px;
+    --config-panel-width: 280px;
+  }
+}
+
+@media (max-width: 768px) {
+  :root {
+    --creation-panel-width: 200px;
+    --config-panel-width: 260px;
+  }
+
+  .react-flow__minimap {
+    width: 120px !important;
+    height: 80px !important;
+  }
+}

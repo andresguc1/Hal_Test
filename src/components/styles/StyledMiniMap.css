@@ -1,0 +1,6 @@
+/* Aquí puedes añadir efectos futuros como glow, hover o animaciones pulsantes */
+
+/* Ejemplo: glow suave en el MiniMap al pasar el mouse */
+.react-flow__minimap:hover {
+  box-shadow: 0 0 15px rgba(26, 115, 232, 0.6);
+}
