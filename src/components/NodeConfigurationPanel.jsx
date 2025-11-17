@@ -12,7 +12,7 @@ import { NODE_FIELD_CONFIGS } from "./hooks/constants";
  * - onClose()
  * - onDeleteNode(nodeId)
  * - updateNodeConfiguration(nodeId, newConfig)
- * - nodes  <-- LISTA completa de nodos (necesario para dropdown browserId)
+ * - nodes  <-- LISTA completa de nodos
  */
 export default function NodeConfigurationPanel({
   action,
@@ -21,7 +21,7 @@ export default function NodeConfigurationPanel({
   onClose,
   onDeleteNode,
   updateNodeConfiguration,
-  nodes = [], // recibir la lista de nodos desde App
+  nodes = [],
 }) {
   const [formData, setFormData] = useState({});
   const [errors, setErrors] = useState({});
@@ -45,7 +45,7 @@ export default function NodeConfigurationPanel({
       initialData.slowMo = currentData.slowMo ?? 0;
       initialData.args = Array.isArray(currentData.args)
         ? currentData.args.join(" ")
-        : (currentData.args ?? "");
+        : currentData.args ?? "";
       initialData.endpoint = currentData.endpoint ?? "";
       initialData.browserId =
         currentData.browserId ?? currentData.instanceId ?? "";
@@ -59,9 +59,7 @@ export default function NodeConfigurationPanel({
           value = value.join(" ");
         }
         initialData[field.name] =
-          value ??
-          field.defaultValue ??
-          (field.type === "checkbox" ? false : "");
+          value ?? field.defaultValue ?? (field.type === "checkbox" ? false : "");
       });
     }
 
@@ -140,6 +138,7 @@ export default function NodeConfigurationPanel({
 
     // Construir payload según tipo
     let payload = {};
+
     if (action.type === "launch_browser") {
       payload = {
         browserType: formData.browserType ?? "chromium",
@@ -154,23 +153,110 @@ export default function NodeConfigurationPanel({
         timeout: Number(formData.timeout) || 20000,
         browserId: formData.browserId ?? "",
       };
+    } else if (action.type === "manage_tabs") {
+      const act = formData.action ?? "new";
+      payload.action = act;
+
+      if (act === "switch" || act === "close" || act === "navigate") {
+        const ti = formData.tabIndex;
+        const tabIndexNum = ti !== undefined && ti !== "" ? Number(ti) : NaN;
+        if (!Number.isFinite(tabIndexNum) || tabIndexNum < 0) {
+          alert("tabIndex inválido. Debe ser un número entero >= 0.");
+          return;
+        }
+        payload.tabIndex = Math.trunc(tabIndexNum);
+      }
+
+      if (act === "new") {
+        if (formData.url && String(formData.url).trim() !== "") {
+          payload.url = String(formData.url).trim();
+        }
+      } else if (act === "navigate") {
+        if (!formData.url || String(formData.url).trim() === "") {
+          alert("Para la acción 'navigate' la propiedad url es obligatoria.");
+          return;
+        }
+        payload.url = String(formData.url).trim();
+      }
     } else {
-      // generic: enviar formData tal cual
-      payload = { ...formData };
+      const { endpoint, ...restOfFormData } = formData;
+      payload = { ...restOfFormData };
+
+      if (endpoint && endpoint.trim() !== "")
+        payload.endpoint = endpoint.trim();
     }
 
-    if (formData.endpoint && formData.endpoint.trim() !== "")
-      payload.endpoint = formData.endpoint.trim();
-
     try {
-      const success = await onExecute({
+      const execPackage = {
         nodeId: action.nodeId,
         type: action.type,
         payload,
+      };
+
+      console.log("[EXECUTE] Prepared execPackage:", execPackage);
+
+      // If onExecute exists, delegate entire execution to it and DO NOT fallback to local fetch.
+      if (typeof onExecute === "function") {
+        try {
+          console.log("[EXECUTE] Delegando a onExecute...");
+          const success = await onExecute(execPackage);
+          console.log("[EXECUTE] onExecute returned:", success);
+          if (!success) {
+            alert("La ejecución del nodo falló. Revisa la consola o apiStatus.");
+          } else {
+            setIsDirty(false);
+          }
+        } catch (err) {
+          console.error("[EXECUTE] onExecute lanzó error:", err);
+          alert("onExecute falló: " + (err?.message || String(err)));
+        }
+        return; // important: avoid local fetch when onExecute exists
+      }
+
+      // If no onExecute was provided, do the fetch here (use absolute backend URL by default)
+      const endpointFromForm =
+        formData.endpoint && formData.endpoint.trim() !== ""
+          ? formData.endpoint.trim()
+          : null;
+
+      const BACKEND_API_BASE = "http://localhost:2001/api/actions";
+
+      const endpointByType = {
+        launch_browser: `${BACKEND_API_BASE}/launch_browser`,
+        open_url: `${BACKEND_API_BASE}/open_url`,
+        close_browser: `${BACKEND_API_BASE}/close_browser`,
+        manage_tabs: `${BACKEND_API_BASE}/manage_tabs`,
+      };
+
+      const defaultEndpoint =
+        endpointByType[action.type] || `${BACKEND_API_BASE}/${action.type}`;
+
+      const urlToCall = endpointFromForm || defaultEndpoint;
+      console.log("[EXECUTE] Performing fetch POST to:", urlToCall);
+      console.log("[EXECUTE] payload:", payload);
+
+      const resp = await fetch(urlToCall, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
       });
-      if (!success)
-        alert("La ejecución del nodo falló. Revisa la consola o apiStatus.");
-      else setIsDirty(false);
+
+      const text = await resp.text();
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch {
+        data = text;
+      }
+
+      console.log("[EXECUTE] fetch response:", resp.status, resp.statusText, data);
+
+      if (!resp.ok) {
+        alert(`Error en la petición: ${resp.status} ${resp.statusText}. Revisa la consola.`);
+        return;
+      }
+
+      setIsDirty(false);
     } catch (err) {
       console.error("Error ejecutando:", err);
       alert("Error ejecutando: " + err.message);
@@ -204,6 +290,7 @@ export default function NodeConfigurationPanel({
       n.data?.type === "launch_browser" &&
       (n.data?.configuration?.instanceId || n.data?.configuration?.browserId),
   );
+  console.log(launchedBrowsers)
 
   const renderField = (fieldConfig) => {
     const { name, label, type, placeholder, options, min, max } = fieldConfig;
@@ -409,11 +496,12 @@ export default function NodeConfigurationPanel({
                 value={formData.url ?? ""}
                 onChange={handleChange}
                 placeholder="https://www.google.com"
+                required
               />
             </div>
 
             <div className="field-group">
-              <label>waitUntil</label>
+              <label>Condición de carga (waitUntil)</label>
               <select
                 name="waitUntil"
                 value={formData.waitUntil ?? "domcontentloaded"}
@@ -433,33 +521,8 @@ export default function NodeConfigurationPanel({
                 name="timeout"
                 value={formData.timeout ?? 20000}
                 onChange={handleChange}
+                min={0}
               />
-            </div>
-
-            <div className="field-group">
-              <label>Browser ID (usar instancia lanzada)</label>
-              <select
-                name="browserId"
-                value={formData.browserId ?? ""}
-                onChange={handleChange}
-              >
-                <option value="">Selecciona una instancia...</option>
-                {launchedBrowsers.map((n) => {
-                  const id =
-                    n.data?.configuration?.instanceId ??
-                    n.data?.configuration?.browserId ??
-                    "";
-                  return (
-                    <option key={n.id} value={id}>
-                      {id} — {n.data?.label || n.id}
-                    </option>
-                  );
-                })}
-              </select>
-              <small className="field-hint">
-                También puedes escribir manualmente un browserId si lo
-                prefieres.
-              </small>
             </div>
 
             <div className="field-group">
@@ -470,6 +533,76 @@ export default function NodeConfigurationPanel({
                 value={formData.endpoint ?? ""}
                 onChange={handleChange}
                 placeholder="http://localhost:2001/api/actions/open_url"
+              />
+            </div>
+          </>
+        );
+      }
+
+      if (action.type === "manage_tabs") {
+        // UI para manage_tabs (refleja el esquema corregido)
+        return (
+          <>
+            {/* Campo: action (Acción) */}
+            <div className="field-group">
+              <label>Acción</label>
+              <select
+                name="action"
+                value={formData.action ?? "new"}
+                onChange={handleChange}
+                required
+              >
+                <option value="new">new</option>
+                <option value="switch">switch</option>
+                <option value="close">close</option>
+                {/* Acción 'list' */}
+                <option value="list">list</option>
+              </select>
+            </div>
+
+            {/* Campo: url (URL) - Condicionalmente requerido para 'new' */}
+            {/* Ocultamos si la acción es 'list' */}
+            {formData.action !== "list" && (
+              <div className="field-group">
+                <label>URL (obligatoria solo para new)</label>
+                <input
+                  type="text"
+                  name="url"
+                  value={formData.url ?? ""}
+                  onChange={handleChange}
+                  placeholder="https://www.google.com"
+                  // Requerido si la acción es 'new'
+                  required={formData.action === "new"}
+                />
+              </div>
+            )}
+
+            {/* Campo: tabIndex (Índice de Pestaña) */}
+            {/* Necesario para 'switch' y 'close' */}
+            {(formData.action === "switch" || formData.action === "close") && (
+              <div className="field-group">
+                <label>Índice de Pestaña (tabIndex)</label>
+                <input
+                  type="number"
+                  name="tabIndex"
+                  value={formData.tabIndex ?? 0}
+                  onChange={handleChange}
+                  min={0}
+                  placeholder="0"
+                  required // Requerido para switch/close
+                />
+              </div>
+            )}
+
+            {/* Campo: endpoint (Endpoint) */}
+            <div className="field-group">
+              <label>Endpoint (opcional)</label>
+              <input
+                type="text"
+                name="endpoint"
+                value={formData.endpoint ?? ""}
+                onChange={handleChange}
+                placeholder="http://localhost:2001/api/actions/manage-tabs"
               />
             </div>
           </>

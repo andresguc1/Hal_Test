@@ -111,16 +111,44 @@ export const resize_viewport = (payload) => {
   return body;
 };
 
-export const manage_tabs = (payload) => {
-  const action = asString(payload?.action, "new");
-  const url = asString(payload?.url);
-  const body = {
-    action: action,
-    browserId: asString(payload?.browserId),
-  };
-  if (url) {
-    body.url = url;
+export const manage_tabs = (payload = {}) => {
+  const action = asString(payload.action, "new").trim();
+
+  // Normalizar action válida (por seguridad)
+  const allowed = ["new", "switch", "close", "list", "navigate"];
+  const act = allowed.includes(action) ? action : "new";
+
+  const body = { action: act };
+
+  // tabIndex: solo para switch/close/navigate
+  if (["switch", "close", "navigate"].includes(act)) {
+    const rawIndex = payload.tabIndex;
+    const parsed = rawIndex === "" || rawIndex === undefined || rawIndex === null
+      ? NaN
+      : Number(rawIndex);
+
+    if (!Number.isFinite(parsed) || parsed < 0) {
+      // Si prefieres no lanzar, puedes devolver null o omitir; recomiendo lanzar para indicar error de payload.
+      throw new Error("tabIndex inválido. Debe ser un número entero >= 0.");
+    }
+
+    body.tabIndex = Math.trunc(parsed);
   }
+
+  // url: para new (opcional) y required para navigate
+  if (act === "new") {
+    if (payload.url && String(payload.url).trim() !== "") {
+      body.url = String(payload.url).trim();
+    }
+    // si no hay url, se crea la pestaña vacía (ok)
+  } else if (act === "navigate") {
+    if (!payload.url || String(payload.url).trim() === "") {
+      throw new Error("Para 'navigate' la propiedad 'url' es obligatoria.");
+    }
+    body.url = String(payload.url).trim();
+  }
+
+  // IMPORTANT: NO incluir browserId — el backend lo maneja
   return body;
 };
 

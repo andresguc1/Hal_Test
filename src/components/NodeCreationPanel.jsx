@@ -26,8 +26,9 @@ const NODE_CATEGORIES = {
       { id: "launch_browser", label: "Lanzar Navegador" },
       { id: "open_url", label: "Cargar URL" },
       { id: "close_browser", label: "Cerrar Navegador" },
-      { id: "manage_tabs", label: "Manejar Pestañas/Contextos" },
+      { id: "manage_tabs", label: "Manejar Pestañas" },
       { id: "resize_viewport", label: "Ajustar Viewport" },
+      { id: "backForward", label: "BackForward" },
     ],
   },
   dom_manipulation: {

@@ -21,7 +21,8 @@ html,
 #root {
   height: 100%;
   margin: 0;
-  font-family: Arial, sans-serif;
+  /* MODIFICACIÓN: Fuente Monoespaciada para estética de consola */
+  font-family: monospace, "Courier New", Courier, sans-serif;
   background-color: var(--deep-space);
   color: var(--cold-white);
 }
@@ -90,9 +91,11 @@ html,
 
 /* MiniMap: ajustar posición */
 .react-flow__minimap {
-  border: 1px solid var(--metallic-silver);
-  border-radius: 4px;
-  background-color: var(--deep-space);
+  /* MODIFICACIÓN: Borde más grueso y sin radio para look técnico */
+  border: 2px solid var(--metallic-silver);
+  border-radius: 0;
+  background-color: var(--tech-gray);
+  /* Fondo oscuro tech-gray */
   z-index: 10 !important;
   right: 200px;
   /* 🔑 Posición normal cerca del borde */
@@ -161,7 +164,15 @@ html,
   background-color: var(--hal-orange);
   color: var(--deep-space);
   border: none;
-  border-radius: 6px;
+  /* MODIFICACIÓN: Estilo de botón de consola 3D */
+  border-radius: 0;
+  /* Sombra para simular relieve del botón */
+  box-shadow:
+    inset 0 0 10px 1px var(--tech-gray),
+    0 4px 0 -2px var(--hal-orange);
+  font-family: monospace, "Courier New", Courier, sans-serif;
+  /* Consistencia de fuente */
+
   cursor: pointer;
   font-weight: bold;
   display: flex;
@@ -174,8 +185,11 @@ html,
 }
 
 .btn-node:hover {
-  transform: scale(1.05);
-  box-shadow: 0 0 10px rgba(255, 140, 50, 0.5);
+  /* MODIFICACIÓN: Simular ligero "presionado" en hover */
+  transform: scale(1.02);
+  box-shadow:
+    inset 0 0 15px 1px var(--deep-space),
+    0 2px 0 -2px var(--hal-orange);
 }
 
 /* =============================== */
@@ -199,6 +213,9 @@ html,
   width: 8px;
   height: 8px;
   background-color: var(--metallic-silver);
+  /* MODIFICACIÓN: Bordes cuadrados para look técnico */
+  border-radius: 0;
+  border: 1px solid var(--deep-space);
 }
 
 /* Edges/conexiones */
@@ -211,21 +228,35 @@ html,
 .btn-node-tertiary {
   background-color: var(--star-blue);
   color: var(--cold-white);
+  /* MODIFICACIÓN: Estilo de botón de consola 3D */
+  box-shadow:
+    inset 0 0 10px 1px var(--tech-gray),
+    0 4px 0 -2px var(--star-blue);
 }
 
 .btn-node-tertiary:hover {
   background-color: #1565c0;
-  box-shadow: 0 0 10px rgba(26, 115, 232, 0.5);
+  /* MODIFICACIÓN: Simular ligero "presionado" en hover */
+  box-shadow:
+    inset 0 0 15px 1px var(--deep-space),
+    0 2px 0 -2px var(--star-blue);
 }
 
 .btn-node-quaternary {
   background-color: #ffb703;
   color: var(--deep-space);
+  /* MODIFICACIÓN: Estilo de botón de consola 3D */
+  box-shadow:
+    inset 0 0 10px 1px var(--tech-gray),
+    0 4px 0 -2px #ffb703;
 }
 
 .btn-node-quaternary:hover {
   background-color: #ffca3a;
-  box-shadow: 0 0 10px rgba(255, 183, 3, 0.6);
+  /* MODIFICACIÓN: Simular ligero "presionado" en hover */
+  box-shadow:
+    inset 0 0 15px 1px var(--deep-space),
+    0 2px 0 -2px #ffb703;
 }
 
 /* ----------------------------------
@@ -248,5 +279,7 @@ html,
   .react-flow__minimap {
     width: 120px !important;
     height: 80px !important;
+    /* MODIFICACIÓN: Asegurar borde cuadrado en responsive */
+    border-radius: 0;
   }
 }

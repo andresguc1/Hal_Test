@@ -1,4 +1,4 @@
-// useFlowManager.js
+// hal_test/src/components/hooks/useFlowManager.js
 import { useState, useCallback, useRef } from "react";
 import {
   addEdge,
@@ -10,15 +10,17 @@ import { v4 as uuidv4 } from "uuid";
 import { NODE_LABELS, NODE_STATE_COLORS, STORAGE_KEYS } from "./constants";
 import * as payloadBuilders from "./payloadBuilders";
 
-const API_BASE_URL = "http://localhost:2001/api/actions";
 const MAX_RETRIES = 3;
 const RETRY_BASE_MS = 1000;
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-// --- OPTIMIZACIÓN: Funciones puras movidas fuera del hook ---
-// Se crean una sola vez.
+// --- CONFIG: base API URL ---
+// Preferencia: usa Vite env var VITE_API_BASE si existe, sino usar proxy ("/api/actions")
+export const API_BASE_URL =
+  import.meta.env?.VITE_API_BASE ?? "/api/actions"; // <-- keep trailing '/api/actions' or set to 'http://localhost:2001/api/actions'
 
+// --- OPTIMIZACIÓN: Funciones puras movidas fuera del hook ---
 const generateNodeId = () => `node_${uuidv4()}`;
 
 const createExecutedLabel = (action) => {
@@ -52,18 +54,14 @@ export const useFlowManager = () => {
     message: "Esperando acción...",
   });
 
-  // --- OPTIMIZACIÓN: Refs para estado estable ---
-  // Mantenemos una referencia siempre actualizada del estado
-  // para que los callbacks no necesiten depender de [nodes, edges].
+  // refs estables
   const nodesRef = useRef(nodes);
   const edgesRef = useRef(edges);
   nodesRef.current = nodes;
   edgesRef.current = edges;
-  // ---------------------------------------------
 
   // topologicalSort (Kahn)
   const topologicalSort = useCallback((nodesList, edgesList) => {
-    // ... (sin cambios en esta lógica) ...
     if (!nodesList || nodesList.length === 0) return [];
     const indegree = {};
     const adj = {};
@@ -100,9 +98,8 @@ export const useFlowManager = () => {
     return resultIds.map((id) => nodeMap[id]);
   }, []);
 
-  // --- OPTIMIZACIÓN: Callbacks de historial estables ---
+  // historial estable
   const saveToHistory = useCallback(() => {
-    // Obtenemos el estado actual de las refs
     setHistory((prev) => ({
       past: [
         ...prev.past,
@@ -110,14 +107,13 @@ export const useFlowManager = () => {
       ],
       future: [],
     }));
-  }, []); // Dependencia vacía = ¡Estable!
+  }, []);
 
   const undo = useCallback(() => {
     setHistory((prev) => {
       if (prev.past.length === 0) return prev;
       const previous = prev.past[prev.past.length - 1];
       const newPast = prev.past.slice(0, -1);
-      // Guardamos el estado actual (de las refs) en 'future'
       const newFuture = [
         { nodes: nodesRef.current, edges: edgesRef.current },
         ...prev.future,
@@ -126,14 +122,13 @@ export const useFlowManager = () => {
       setEdges(previous.edges);
       return { past: newPast, future: newFuture };
     });
-  }, []); // Dependencia vacía = ¡Estable!
+  }, []);
 
   const redo = useCallback(() => {
     setHistory((prev) => {
       if (prev.future.length === 0) return prev;
       const next = prev.future[0];
       const newFuture = prev.future.slice(1);
-      // Guardamos el estado actual (de las refs) en 'past'
       const newPast = [
         ...prev.past,
         { nodes: nodesRef.current, edges: edgesRef.current },
@@ -142,11 +137,9 @@ export const useFlowManager = () => {
       setEdges(next.edges);
       return { past: newPast, future: newFuture };
     });
-  }, []); // Dependencia vacía = ¡Estable!
+  }, []);
 
-  // --- Operaciones de Nodo (ahora estables) ---
-  // (Dependen de saveToHistory, que ahora es estable)
-
+  // Operaciones de nodo
   const addNode = useCallback(
     (typeKey) => {
       saveToHistory();
@@ -245,9 +238,7 @@ export const useFlowManager = () => {
     [saveToHistory],
   );
 
-  // --- OPTIMIZACIÓN: executeStep Refactorizado ---
-  // Ahora es mucho más corto. Delega la validación y construcción
-  // del payload a `payloadBuilders` y se centra en el fetch y reintentos.
+  // --- executeStep robusto ---
   const executeStep = useCallback(async (action) => {
     if (!action || !action.nodeId) {
       console.warn("executeStep: acción inválida", action);
@@ -255,10 +246,10 @@ export const useFlowManager = () => {
     }
 
     const { nodeId, type, payload } = action;
+
+    // Endpoint resolved via API_BASE_URL (puede ser relativo /api/actions o absoluto)
     const endpoint =
-      payload && payload.endpoint
-        ? payload.endpoint
-        : `${API_BASE_URL}/${type}`;
+      (payload && payload.endpoint) || `${API_BASE_URL}/${type}`;
 
     setIsLoading(true);
     setApiStatus({
@@ -270,23 +261,26 @@ export const useFlowManager = () => {
       let bodyToSend;
 
       try {
-        // --- OPTIMIZACIÓN: Patrón de Despacho (Dispatch) ---
-        // Busca un builder específico para este tipo
         const builder = payloadBuilders[type];
-
         if (builder) {
-          // Si existe, úsalo para sanear/validar el payload
-          // Esto PUEDE lanzar un error si la validación falla
+          // builder puede lanzar si payload inválido
           bodyToSend = builder(payload || {});
         } else {
-          // Si no hay builder, envía el payload tal cual
           bodyToSend = payload || {};
         }
-        // --------------------------------------------------
+      } catch (builderError) {
+        console.error("[executeStep] Error en payload builder para", type, builderError);
+        setApiStatus({
+          state: "error",
+          message: `Payload inválido para ${type}: ${builderError.message}`,
+        });
+        setIsLoading(false);
+        return false;
+      }
 
-        // -----------------------------
-        // Petición (Lógica sin cambios)
-        // -----------------------------
+      try {
+        console.log("[executeStep] POST ->", endpoint, "body:", bodyToSend, "attempt:", attempt + 1);
+
         const response = await fetch(endpoint, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -294,6 +288,13 @@ export const useFlowManager = () => {
         });
 
         if (!response.ok) {
+          // Reintentar solo en errores de servidor (5xx)
+          const text = await response.text().catch(() => "");
+          let errData = null;
+          try { errData = JSON.parse(text); } catch { console.log('debes revisar aqui')}
+          const serverMsg = (errData && errData.message) || text || response.statusText;
+          console.warn(`[executeStep] Error response ${response.status}:`, serverMsg);
+
           if (response.status >= 500 && attempt < MAX_RETRIES - 1) {
             const delay = RETRY_BASE_MS * 2 ** attempt;
             setApiStatus((prev) => ({
@@ -301,25 +302,24 @@ export const useFlowManager = () => {
               message: `Error ${response.status}. Reintentando en ${delay / 1000}s...`,
             }));
             await sleep(delay);
-            continue;
+            continue; // reintentar
           }
-          const errorData = await response
-            .json()
-            .catch(() => ({ message: "Respuesta sin JSON" }));
-          throw new Error(
-            `Error ${response.status}: ${errorData.message || "Ejecución fallida en backend."}`,
-          );
+
+          // error definitivo
+          throw new Error(serverMsg || `Error ${response.status}`);
         }
 
-        const result = await response.json();
+        // OK
+        const result = await response.json().catch(() => ({}));
 
-        // Extraer instanceId/browserId si el backend lo devuelve
+        // Extraer instanceId/browserId si viene
         const instanceId =
           result.instanceId ??
           result.browserId ??
           (result.instance && result.instance.id) ??
           null;
 
+        // Actualizar estado del nodo
         setNodes((nds) =>
           nds.map((node) => {
             if (node.id === nodeId) {
@@ -329,7 +329,7 @@ export const useFlowManager = () => {
               };
               if (instanceId) {
                 newConfig.instanceId = instanceId;
-                newConfig.browserId = instanceId; // alias
+                newConfig.browserId = instanceId;
               }
 
               return {
@@ -357,44 +357,44 @@ export const useFlowManager = () => {
           message: `Ejecución exitosa. Resultado: ${result.status || "OK"}`,
         });
         setIsLoading(false);
-        return true; // Éxito, salimos del loop
+        return true;
       } catch (error) {
-        // El catch ahora maneja errores de validación (del builder) Y errores de red/fetch
+        // error de red o definitivo
+        const isNetworkError = error.message === "Failed to fetch" || error.message.includes("NetworkError") || error.message.includes("Network request failed");
+        const isServerError = !isNetworkError && attempt < MAX_RETRIES - 1;
+        console.log('revisa server error: ' + isServerError)
 
-        // No reintentar en errores de validación (ej. "browserId obligatorio")
-        const isValidationError =
-          error.message.includes("obligatorio") ||
-          error.message.includes("inválid");
+        console.error("[executeStep] intento failed:", error.message || error);
 
-        if (!isValidationError && attempt < MAX_RETRIES - 1) {
-          // Es un error de red/conexión, reintentamos
+        if (isNetworkError && attempt < MAX_RETRIES - 1) {
+          // reintentar en caso de fallo de red
           const delay = RETRY_BASE_MS * 2 ** attempt;
           setApiStatus((prev) => ({
             ...prev,
-            message: `Error: ${error.message}. Reintentando en ${delay / 1000}s...`,
+            message: `Fallo de red: ${error.message}. Reintentando en ${delay / 1000}s...`,
           }));
           await sleep(delay);
           continue;
         }
 
-        // Error definitivo (sea de validación o fallo final de red)
+        // No reintentar: fallo definitivo
         setApiStatus({
           state: "error",
           message: `Fallo definitivo: ${error.message}`,
         });
         setIsLoading(false);
-        return false; // Fallo, salimos del loop
+        return false;
       }
     }
 
     setIsLoading(false);
     return false;
-  }, []); // Este hook es estable (no depende de props/estado)
+  }, []);
 
   // edges & reactflow callbacks
   const onConnect = useCallback(
     (connection) => {
-      saveToHistory(); // Estable
+      saveToHistory();
       setEdges((eds) =>
         addEdge(
           {
@@ -426,7 +426,7 @@ export const useFlowManager = () => {
     });
   }, []);
 
-  // executeFlow (sin cambios, pero ahora depende de un executeStep estable)
+  // executeFlow (usa executeStep estable)
   const executeFlow = useCallback(async () => {
     const sortedNodes = topologicalSort(nodes, edges);
     if (!sortedNodes || sortedNodes.length === 0) {
@@ -459,7 +459,7 @@ export const useFlowManager = () => {
     return true;
   }, [nodes, edges, topologicalSort, executeStep]);
 
-  // Save/load/export/import/clear (sin cambios funcionales)
+  // save/load/export/import/clear
   const saveFlow = useCallback(() => {
     const flowData = {
       nodes,
@@ -489,7 +489,7 @@ export const useFlowManager = () => {
   const loadFlow = useCallback(
     (flowData) => {
       if (!flowData || !flowData.nodes) return false;
-      saveToHistory(); // Estable
+      saveToHistory();
       setNodes(flowData.nodes);
       setEdges(flowData.edges || []);
       setApiStatus({ state: "success", message: "Flujo cargado." });
@@ -509,7 +509,7 @@ export const useFlowManager = () => {
     a.download = `flow_${Date.now()}.json`;
     a.click();
     URL.revokeObjectURL(url);
-  }, [saveFlow]); // Este sigue dependiendo de saveFlow (que depende de nodes/edges), lo cual es correcto.
+  }, [saveFlow]);
 
   const importFlow = useCallback(() => {
     return new Promise((resolve, reject) => {
@@ -522,7 +522,7 @@ export const useFlowManager = () => {
         try {
           const text = await file.text();
           const parsed = JSON.parse(text);
-          const success = loadFlow(parsed); // loadFlow ahora es estable
+          const success = loadFlow(parsed);
           if (success) resolve(parsed);
           else reject(new Error("Formato de flujo inválido"));
         } catch (err) {
@@ -534,14 +534,13 @@ export const useFlowManager = () => {
   }, [loadFlow]);
 
   const clearFlow = useCallback(() => {
-    saveToHistory(); // Estable
+    saveToHistory();
     setNodes([]);
     setEdges([]);
     setSelectedAction(null);
     setApiStatus({ state: "idle", message: "Canvas limpio." });
   }, [saveToHistory]);
 
-  // --- Retorno del Hook (sin cambios) ---
   return {
     nodes,
     edges,

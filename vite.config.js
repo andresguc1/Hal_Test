@@ -11,4 +11,16 @@ export default defineConfig({
       "react-dom": path.resolve("./node_modules/react-dom"),
     },
   },
+
+  // === PROXY PARA BACKEND ===
+  server: {
+    proxy: {
+      "/api": {
+        target: "http://localhost:2001",
+        changeOrigin: true,
+        secure: false,
+      },
+    },
+  },
 });
+

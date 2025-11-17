@@ -142,13 +142,6 @@ export const NODE_FIELD_CONFIGS = {
       },
     },
     {
-      name: "browserId",
-      label: "Browser ID",
-      type: "text",
-      placeholder: "ID del navegador (ej. 1)",
-      required: true,
-    },
-    {
       name: "endpoint",
       label: "Endpoint (opcional)",
       type: "text",
@@ -2472,23 +2465,45 @@ export const NODE_FIELD_CONFIGS = {
         { value: "new", label: "new" },
         { value: "switch", label: "switch" },
         { value: "close", label: "close" },
-        // añade más acciones si tu backend las soporta
+        { value: "list", label: "list" }, // AÑADIDO: Acción 'list'
       ],
       validation: (v) => {
         if (!v) return "Acción requerida";
-        if (!["new", "switch", "close"].includes(v)) return "Acción inválida";
+        // AJUSTADO: Se incluye 'list'
+        if (!["new", "switch", "close", "list"].includes(v)) return "Acción inválida";
+        return null;
+      },
+    },
+    {
+      // AÑADIDO: Configuración para el nuevo campo tabIndex
+      name: "tabIndex",
+      label: "Índice de Pestaña (tabIndex)",
+      type: "number",
+      placeholder: "0",
+      defaultValue: 0,
+      validation: (v, form) => {
+        // AJUSTADO: Requerido si la acción es 'switch' o 'close'
+        if (form.action === "switch" || form.action === "close") {
+          if (v === undefined || v === null || v === "") {
+            return "El índice de la pestaña es obligatorio para 'switch' y 'close'.";
+          }
+          if (!Number.isInteger(Number(v)) || Number(v) < 0) {
+            return "El índice debe ser un número entero mayor o igual a 0.";
+          }
+        }
         return null;
       },
     },
     {
       name: "url",
-      label: "URL (opcional, obligatoria para action=new)",
+      label: "URL (obligatoria para action=new)",
       type: "text",
       placeholder: "https://www.google.com",
       defaultValue: "",
       validation: (v, form) => {
         if (form.action === "new") {
           try {
+            // Se valida que sea una URL válida
             new URL(v);
             return null;
           } catch {
@@ -2519,13 +2534,6 @@ export const NODE_FIELD_CONFIGS = {
   go_forward: [],
   refresh: [],
   close_browser: [
-    {
-      name: "browserId",
-      label: "Browser ID",
-      type: "text",
-      placeholder: "ID del navegador lanzado (por ejemplo: 1)",
-      required: true,
-    },
     {
       name: "forceClose",
       label: "Forzar cierre (forceClose)",
