@@ -2470,7 +2470,8 @@ export const NODE_FIELD_CONFIGS = {
       validation: (v) => {
         if (!v) return "Acción requerida";
         // AJUSTADO: Se incluye 'list'
-        if (!["new", "switch", "close", "list"].includes(v)) return "Acción inválida";
+        if (!["new", "switch", "close", "list"].includes(v))
+          return "Acción inválida";
         return null;
       },
     },

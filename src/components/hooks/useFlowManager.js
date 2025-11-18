@@ -17,8 +17,7 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 // --- CONFIG: base API URL ---
 // Preferencia: usa Vite env var VITE_API_BASE si existe, sino usar proxy ("/api/actions")
-export const API_BASE_URL =
-  import.meta.env?.VITE_API_BASE ?? "/api/actions"; // <-- keep trailing '/api/actions' or set to 'http://localhost:2001/api/actions'
+export const API_BASE_URL = import.meta.env?.VITE_API_BASE ?? "/api/actions"; // <-- keep trailing '/api/actions' or set to 'http://localhost:2001/api/actions'
 
 // --- OPTIMIZACIÓN: Funciones puras movidas fuera del hook ---
 const generateNodeId = () => `node_${uuidv4()}`;
@@ -248,8 +247,7 @@ export const useFlowManager = () => {
     const { nodeId, type, payload } = action;
 
     // Endpoint resolved via API_BASE_URL (puede ser relativo /api/actions o absoluto)
-    const endpoint =
-      (payload && payload.endpoint) || `${API_BASE_URL}/${type}`;
+    const endpoint = (payload && payload.endpoint) || `${API_BASE_URL}/${type}`;
 
     setIsLoading(true);
     setApiStatus({
@@ -269,7 +267,11 @@ export const useFlowManager = () => {
           bodyToSend = payload || {};
         }
       } catch (builderError) {
-        console.error("[executeStep] Error en payload builder para", type, builderError);
+        console.error(
+          "[executeStep] Error en payload builder para",
+          type,
+          builderError,
+        );
         setApiStatus({
           state: "error",
           message: `Payload inválido para ${type}: ${builderError.message}`,
@@ -279,7 +281,14 @@ export const useFlowManager = () => {
       }
 
       try {
-        console.log("[executeStep] POST ->", endpoint, "body:", bodyToSend, "attempt:", attempt + 1);
+        console.log(
+          "[executeStep] POST ->",
+          endpoint,
+          "body:",
+          bodyToSend,
+          "attempt:",
+          attempt + 1,
+        );
 
         const response = await fetch(endpoint, {
           method: "POST",
@@ -291,9 +300,17 @@ export const useFlowManager = () => {
           // Reintentar solo en errores de servidor (5xx)
           const text = await response.text().catch(() => "");
           let errData = null;
-          try { errData = JSON.parse(text); } catch { console.log('debes revisar aqui')}
-          const serverMsg = (errData && errData.message) || text || response.statusText;
-          console.warn(`[executeStep] Error response ${response.status}:`, serverMsg);
+          try {
+            errData = JSON.parse(text);
+          } catch {
+            console.log("debes revisar aqui");
+          }
+          const serverMsg =
+            (errData && errData.message) || text || response.statusText;
+          console.warn(
+            `[executeStep] Error response ${response.status}:`,
+            serverMsg,
+          );
 
           if (response.status >= 500 && attempt < MAX_RETRIES - 1) {
             const delay = RETRY_BASE_MS * 2 ** attempt;
@@ -360,9 +377,12 @@ export const useFlowManager = () => {
         return true;
       } catch (error) {
         // error de red o definitivo
-        const isNetworkError = error.message === "Failed to fetch" || error.message.includes("NetworkError") || error.message.includes("Network request failed");
+        const isNetworkError =
+          error.message === "Failed to fetch" ||
+          error.message.includes("NetworkError") ||
+          error.message.includes("Network request failed");
         const isServerError = !isNetworkError && attempt < MAX_RETRIES - 1;
-        console.log('revisa server error: ' + isServerError)
+        console.log("revisa server error: " + isServerError);
 
         console.error("[executeStep] intento failed:", error.message || error);
 

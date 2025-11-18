@@ -45,7 +45,7 @@ export default function NodeConfigurationPanel({
       initialData.slowMo = currentData.slowMo ?? 0;
       initialData.args = Array.isArray(currentData.args)
         ? currentData.args.join(" ")
-        : currentData.args ?? "";
+        : (currentData.args ?? "");
       initialData.endpoint = currentData.endpoint ?? "";
       initialData.browserId =
         currentData.browserId ?? currentData.instanceId ?? "";
@@ -59,7 +59,9 @@ export default function NodeConfigurationPanel({
           value = value.join(" ");
         }
         initialData[field.name] =
-          value ?? field.defaultValue ?? (field.type === "checkbox" ? false : "");
+          value ??
+          field.defaultValue ??
+          (field.type === "checkbox" ? false : "");
       });
     }
 
@@ -202,7 +204,9 @@ export default function NodeConfigurationPanel({
           const success = await onExecute(execPackage);
           console.log("[EXECUTE] onExecute returned:", success);
           if (!success) {
-            alert("La ejecución del nodo falló. Revisa la consola o apiStatus.");
+            alert(
+              "La ejecución del nodo falló. Revisa la consola o apiStatus.",
+            );
           } else {
             setIsDirty(false);
           }
@@ -249,10 +253,17 @@ export default function NodeConfigurationPanel({
         data = text;
       }
 
-      console.log("[EXECUTE] fetch response:", resp.status, resp.statusText, data);
+      console.log(
+        "[EXECUTE] fetch response:",
+        resp.status,
+        resp.statusText,
+        data,
+      );
 
       if (!resp.ok) {
-        alert(`Error en la petición: ${resp.status} ${resp.statusText}. Revisa la consola.`);
+        alert(
+          `Error en la petición: ${resp.status} ${resp.statusText}. Revisa la consola.`,
+        );
         return;
       }
 
@@ -290,7 +301,7 @@ export default function NodeConfigurationPanel({
       n.data?.type === "launch_browser" &&
       (n.data?.configuration?.instanceId || n.data?.configuration?.browserId),
   );
-  console.log(launchedBrowsers)
+  console.log(launchedBrowsers);
 
   const renderField = (fieldConfig) => {
     const { name, label, type, placeholder, options, min, max } = fieldConfig;
