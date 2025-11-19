@@ -4,6 +4,26 @@ import { XCircle, Play, Trash2, AlertCircle } from "lucide-react";
 import "./styles/NodeConfigurationPanel.css";
 import { NODE_FIELD_CONFIGS } from "./hooks/constants";
 
+// ===============================================
+// CRÍTICO: Función de comparación personalizada para React.memo
+// Esta función evita re-renders innecesarios durante el arrastre de nodos.
+// Si devuelve 'true', el re-render se salta.
+const areEqual = (prevProps, nextProps) => {
+  // 1. Si la visibilidad cambia, debemos re-renderizar (panel abierto/cerrado).
+  if (prevProps.isVisible !== nextProps.isVisible) return false;
+
+  // 2. Si el nodo seleccionado cambia (id o tipo), debemos re-renderizar (contenido del formulario).
+  if (prevProps.action?.nodeId !== nextProps.action?.nodeId) return false;
+  if (prevProps.action?.type !== nextProps.action?.type) return false;
+
+  // 3. Ignoramos intencionalmente la prop 'nodes'. Su referencia cambia constantemente
+  // al arrastrar, pero los cambios no afectan al formulario si el 'action' es el mismo.
+  // Asumimos que las otras props (funciones) están envueltas en useCallback y son estables.
+
+  return true;
+};
+// ===============================================
+
 /**
  * Props:
  * - action
@@ -12,9 +32,9 @@ import { NODE_FIELD_CONFIGS } from "./hooks/constants";
  * - onClose()
  * - onDeleteNode(nodeId)
  * - updateNodeConfiguration(nodeId, newConfig)
- * - nodes  <-- LISTA completa de nodos
+ * - nodes  <-- LISTA completa de nodos (volatile)
  */
-export default function NodeConfigurationPanel({
+function NodeConfigurationPanel({
   action,
   isVisible,
   onExecute,
@@ -234,6 +254,7 @@ export default function NodeConfigurationPanel({
         click: `${BACKEND_API_BASE}/click`,
         go_back: `${BACKEND_API_BASE}/go_back`,
         go_forward: `${BACKEND_API_BASE}/go_forward`,
+        type_text: `${BACKEND_API_BASE}/type_text`,
       };
 
       const defaultEndpoint =
@@ -305,7 +326,7 @@ export default function NodeConfigurationPanel({
       n.data?.type === "launch_browser" &&
       (n.data?.configuration?.instanceId || n.data?.configuration?.browserId),
   );
-  console.log(launchedBrowsers);
+  console.log(launchedBrowsers); // Esta línea ya no se ejecutará en cada arrastre
 
   const renderField = (fieldConfig) => {
     const { name, label, type, placeholder, options, min, max } = fieldConfig;
@@ -692,3 +713,6 @@ export default function NodeConfigurationPanel({
     </aside>
   );
 }
+
+// Exportar el componente memoizado con la función de comparación personalizada
+export default React.memo(NodeConfigurationPanel, areEqual);

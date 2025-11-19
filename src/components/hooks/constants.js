@@ -194,39 +194,50 @@ export const NODE_FIELD_CONFIGS = {
     },
     {
       name: "text",
-      label: "Texto a escribir",
+      label: "Texto a ingresar",
       type: "text",
-      placeholder: "mi.usuario.de.prueba",
+      placeholder: "Ej: mi_usuario@dominio.com",
       required: true,
       validation: (v) => {
-        if (!v || String(v).trim() === "")
-          return "El texto no puede estar vacío";
+        if (v === null || v === undefined)
+          return "El texto a ingresar es obligatorio";
         return null;
       },
     },
     {
       name: "clearBeforeType",
-      label: "Limpiar antes de escribir",
+      label: "Limpiar antes de escribir (clearBeforeType)",
       type: "checkbox",
       defaultValue: true,
     },
     {
       name: "delay",
-      label: "Retraso entre teclas (ms)",
+      label: "Retardo por tecla (ms)",
       type: "number",
-      defaultValue: 50,
+      defaultValue: 0,
+      placeholder: "0 (escribir rápido) o 50 (escribir lento)",
       validation: (v) => {
-        if (isNaN(v)) return "El retraso debe ser un número";
-        if (v < 0) return "El retraso no puede ser negativo";
+        const num = Number(v);
+        if (v === "" || v === undefined || Number.isNaN(num))
+          return "Delay debe ser un número entero.";
+        if (!Number.isInteger(num)) return "Delay debe ser un número entero.";
+        if (num < 0) return "El retardo no puede ser negativo.";
         return null;
       },
     },
     {
-      name: "browserId",
-      label: "Browser ID",
-      type: "text",
-      placeholder: "ID del navegador (ej. 1)",
-      required: true,
+      name: "timeout",
+      label: "Tiempo máximo de espera (ms)",
+      type: "number",
+      defaultValue: 30000,
+      validation: (v) => {
+        const num = Number(v);
+        if (v === "" || v === undefined || Number.isNaN(num))
+          return "Timeout debe ser un número entero.";
+        if (!Number.isInteger(num)) return "Timeout debe ser un número entero.";
+        if (num < 1) return "El tiempo de espera debe ser al menos 1ms.";
+        return null;
+      },
     },
     {
       name: "endpoint",

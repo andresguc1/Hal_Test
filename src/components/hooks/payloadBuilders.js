@@ -167,11 +167,11 @@ export const manage_tabs = (payload = {}) => {
 
 /**
  * Crea el payload para go_back.
-* @param {object} _payload - Datos del formulario (se ignora).
+ * @param {object} _payload - Datos del formulario (se ignora).
  * @returns {object} Un objeto vacío.
  */
 export const go_back = (_payload = {}) => {
-  console.log(_payload)
+  console.log(_payload);
   return {};
 };
 
@@ -181,7 +181,7 @@ export const go_back = (_payload = {}) => {
  * @returns {object} Un objeto vacío.
  */
 export const go_forward = (_payload = {}) => {
-  console.log(_payload)
+  console.log(_payload);
   return {};
 };
 
@@ -252,14 +252,30 @@ export const click = (payload = {}) => {
   return body;
 };
 
-export const type_text = (payload) => {
-  return {
-    selector: asString(payload?.selector),
-    text: asString(payload?.text),
-    clearBeforeType: asBoolean(payload?.clearBeforeType, false),
-    delay: asNumber(payload?.delay, 50, 0),
-    browserId: asString(payload?.browserId),
+export const type_text = (payload = {}) => {
+  const selector = asString(payload?.selector);
+  const text = payload?.text; // No trimear ni convertir a string aún, para respetar el Joi.
+
+  // Validaciones estrictas del frontend (aunque Joi las repite en backend)
+  if (selector === "") {
+    throw new Error("El selector es obligatorio.");
+  }
+  if (text === null || text === undefined) {
+    throw new Error("El texto a ingresar es obligatorio.");
+  }
+
+  // Construir el payload
+  const body = {
+    selector: selector,
+    text: asString(text, ""), // El texto se envía, si es string vacío, Joi lo manejará si es necesario
+    clearBeforeType: asBoolean(payload?.clearBeforeType, true), // Default: true (según Joi)
+    delay: asNumber(payload?.delay, 0, 0), // Default: 0, Mín: 0 (según Joi)
+    timeout: asNumber(payload?.timeout, 30000, 1), // Default: 30000, Mín: 1 (según Joi)
   };
+
+  // browserId no se incluye, ya que lo maneja el backend.
+
+  return body;
 };
 
 export const select_option = (payload) => {
