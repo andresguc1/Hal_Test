@@ -87,6 +87,8 @@ const asJsonString = (value, required = false, fieldName = "Campo") => {
   return jsonString;
 };
 
+// ELIMINADA la función auxiliar build_history_payload que ya no se utiliza.
+
 // ---------------------------------------------
 // Builders de Payload (Acciones del Navegador)
 // ---------------------------------------------
@@ -99,30 +101,37 @@ export const close_browser = (payload) => {
   };
 };
 
-export const resize_viewport = (payload) => {
-  const width = asNumber(payload?.width, undefined, 1);
-  const height = asNumber(payload?.height, undefined, 1);
+export const resize_viewport = (payload = {}) => {
+  // --- Manejo de Width ---
+  const width = asNumber(payload.width);
+  if (!Number.isFinite(width) || width <= 0) {
+    throw new Error("Width inválido. Debe ser un número positivo.");
+  }
 
-  const body = {};
-  if (width !== undefined) body.width = width;
-  if (height !== undefined) body.height = height;
-  body.browserId = asString(payload?.browserId);
+  // --- Manejo de Height ---
+  const height = asNumber(payload.height);
+  if (!Number.isFinite(height) || height <= 0) {
+    throw new Error("Height inválido. Debe ser un número positivo.");
+  }
+
+  // Construir el payload final
+  const body = {
+    width: Math.trunc(width),
+    height: Math.trunc(height),
+  };
 
   return body;
 };
 
 export const manage_tabs = (payload = {}) => {
-  // Se añade browserId, ya que es estándar para acciones de navegación
-  const browserId = asString(payload.browserId);
   const action = asString(payload.action, "new").toLowerCase().trim();
 
-  // Normalizar y validar la acción
   const allowed = ["new", "switch", "close", "list", "navigate"];
   const act = allowed.includes(action) ? action : "new";
 
+  // body ya NO incluye browserId
   const body = {
     action: act,
-    browserId: browserId, // Incluido por consistencia con otras acciones
   };
 
   // --- Manejo de tabIndex (para switch, close, navigate) ---
@@ -130,7 +139,6 @@ export const manage_tabs = (payload = {}) => {
     const rawIndex = payload.tabIndex;
     const parsed = asNumber(rawIndex);
 
-    // Validación estricta para asegurar un índice válido antes de enviarlo
     if (!Number.isFinite(parsed) || parsed < 0 || !Number.isInteger(parsed)) {
       throw new Error(
         `tabIndex inválido para la acción '${act}'. Debe ser un número entero >= 0.`,
@@ -144,12 +152,10 @@ export const manage_tabs = (payload = {}) => {
   const url = asString(payload.url);
 
   if (act === "new") {
-    // Para 'new', la URL es opcional (se abre pestaña vacía si no se proporciona)
     if (url !== "") {
       body.url = url;
     }
   } else if (act === "navigate") {
-    // Para 'navigate', la URL es obligatoria
     if (url === "") {
       throw new Error("Para 'navigate' la propiedad 'url' es obligatoria.");
     }
@@ -157,6 +163,26 @@ export const manage_tabs = (payload = {}) => {
   }
 
   return body;
+};
+
+/**
+ * Crea el payload para go_back.
+* @param {object} _payload - Datos del formulario (se ignora).
+ * @returns {object} Un objeto vacío.
+ */
+export const go_back = (_payload = {}) => {
+  console.log(_payload)
+  return {};
+};
+
+/**
+ * Crea el payload para go_forward.
+ * @param {object} payload - Datos del formulario (se ignora).
+ * @returns {object} Un objeto vacío.
+ */
+export const go_forward = (_payload = {}) => {
+  console.log(_payload)
+  return {};
 };
 
 // ---------------------------------------------
@@ -202,12 +228,28 @@ export const execute_js = (payload) => {
   };
 };
 
-export const click = (payload) => {
-  return {
-    selector: asString(payload?.selector),
-    button: asString(payload?.button, "left"),
-    browserId: asString(payload?.browserId),
+export const click = (payload = {}) => {
+  // const browserId = asString(payload.browserId); // ELIMINADO: Ya no se obtiene
+  const selector = asString(payload.selector);
+
+  // ELIMINADA la validación de browserId
+
+  if (selector === "") {
+    throw new Error("El 'selector' es obligatorio.");
+  }
+
+  // Normalizar el botón
+  const button = asString(payload.button, "left").toLowerCase();
+  const allowedButtons = ["left", "right", "middle"];
+  const finalButton = allowedButtons.includes(button) ? button : "left";
+
+  // Construir el payload final
+  const body = {
+    selector: selector,
+    button: finalButton,
   };
+
+  return body;
 };
 
 export const type_text = (payload) => {

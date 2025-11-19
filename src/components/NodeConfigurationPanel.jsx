@@ -230,6 +230,10 @@ export default function NodeConfigurationPanel({
         open_url: `${BACKEND_API_BASE}/open_url`,
         close_browser: `${BACKEND_API_BASE}/close_browser`,
         manage_tabs: `${BACKEND_API_BASE}/manage_tabs`,
+        resize_viewport: `${BACKEND_API_BASE}/resize_viewport`,
+        click: `${BACKEND_API_BASE}/click`,
+        go_back: `${BACKEND_API_BASE}/go_back`,
+        go_forward: `${BACKEND_API_BASE}/go_forward`,
       };
 
       const defaultEndpoint =

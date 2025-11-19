@@ -173,13 +173,6 @@ export const NODE_FIELD_CONFIGS = {
       ],
     },
     {
-      name: "browserId",
-      label: "Browser ID",
-      type: "text",
-      placeholder: "ID del navegador (ej. 1)",
-      required: true,
-    },
-    {
       name: "endpoint",
       label: "Endpoint (opcional)",
       type: "text",
@@ -2532,7 +2525,6 @@ export const NODE_FIELD_CONFIGS = {
     },
   ],
 
-  go_forward: [],
   refresh: [],
   close_browser: [
     {
@@ -2554,7 +2546,25 @@ export const NODE_FIELD_CONFIGS = {
       placeholder: "http://localhost:2001/api/actions/close_browser",
     },
   ],
-  go_back: [],
+  go_back: [
+    {
+      name: "endpoint",
+      label: "Endpoint (opcional)",
+      type: "text",
+      placeholder: "http://localhost:2001/api/actions/go_back",
+    },
+    // Eliminado: El campo "steps"
+  ],
+
+  go_forward: [
+    {
+      name: "endpoint",
+      label: "Endpoint (opcional)",
+      type: "text",
+      placeholder: "http://localhost:2001/api/actions/go_forward",
+    },
+    // Eliminado: El campo "steps"
+  ],
 };
 
 /**
