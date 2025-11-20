@@ -255,6 +255,8 @@ function NodeConfigurationPanel({
         go_back: `${BACKEND_API_BASE}/go_back`,
         go_forward: `${BACKEND_API_BASE}/go_forward`,
         type_text: `${BACKEND_API_BASE}/type_text`,
+        wait_for_element: `${BACKEND_API_BASE}/wait_for_element`,
+        execute_js: `${BACKEND_API_BASE}/execute_js`,
       };
 
       const defaultEndpoint =

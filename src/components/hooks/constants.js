@@ -2285,99 +2285,88 @@ export const NODE_FIELD_CONFIGS = {
   wait_for_element: [
     {
       name: "selector",
-      label: "Selector",
+      label: "Selector (CSS/XPath)",
       type: "text",
-      placeholder: '#loader-animacion or //div[@id="loader"]',
+      placeholder: "Ej: #mi-id o .mi-clase",
       required: true,
-      validation: (v) => {
-        if (!v || String(v).trim() === "") return "Selector requerido";
-        return null;
+      validation: (value) => {
+        if (!value) return "El selector del elemento es obligatorio.";
+        return null; // Validación básica de no vacío, el backend hace el resto.
       },
     },
     {
       name: "condition",
-      label: "Condition",
+      label: "Condición de Espera",
       type: "select",
-      defaultValue: "hidden",
       options: [
-        { value: "visible", label: "visible" },
-        { value: "hidden", label: "hidden" },
-        { value: "attached", label: "attached" },
-        { value: "detached", label: "detached" },
+        { value: "visible", label: "Visible (Aparece en la pantalla)" },
+        { value: "hidden", label: "Oculto (Desaparece de la pantalla)" },
+        { value: "attached", label: "Adjunto al DOM" },
+        { value: "detached", label: "Desadjunto del DOM" },
       ],
+      defaultValue: "visible",
       required: true,
     },
     {
       name: "timeout",
-      label: "Timeout (ms)",
+      label: "Tiempo de espera (ms)",
       type: "number",
-      defaultValue: 15000,
-      validation: (v) => {
-        if (v === "" || v === undefined || Number.isNaN(Number(v)))
-          return "Timeout debe ser un número";
-        if (Number(v) < 0) return "Timeout no puede ser negativo";
+      placeholder: "Ej: 15000",
+      defaultValue: 30000,
+      min: 1,
+      validation: (value) => {
+        if (value !== undefined && value !== null && value < 1) return "El tiempo de espera debe ser al menos 1 ms.";
         return null;
       },
-    },
-    {
-      name: "browserId",
-      label: "Browser ID",
-      type: "text",
-      placeholder: "ID del navegador (ej. 1)",
-      required: true,
-    },
-    {
-      name: "endpoint",
-      label: "Endpoint (opcional)",
-      type: "text",
-      placeholder: "http://localhost:2001/api/actions/wait_for_element",
     },
   ],
 
   execute_js: [
     {
       name: "script",
-      label: "Script (JS)",
-      type: "textarea",
-      placeholder: "return document.title;",
+      label: "Código JavaScript (función)",
+      type: "textarea", // Usamos textarea para bloques de código
+      placeholder: "Ej: () => { return document.title; }",
       required: true,
-      validation: (v) => {
-        if (!v || String(v).trim() === "") return "El script es requerido";
+      validation: (value) => {
+        if (!value) return "El script de JavaScript es obligatorio.";
         return null;
       },
-    },
-    {
-      name: "returnValue",
-      label: "Devolver valor",
-      type: "checkbox",
-      defaultValue: true,
-    },
-    {
-      name: "variableName",
-      label: "Nombre de variable (si returnValue=true)",
-      type: "text",
-      placeholder: "titulo_pagina",
-      defaultValue: "",
+      hint: "El script debe ser una función anónima. Ej: () => { /* tu código */ }",
     },
     {
       name: "args",
-      label: "Args (string)",
+      label: "Argumentos (JSON)",
       type: "text",
-      placeholder: "arg1 arg2 ... (opcional)",
-      defaultValue: "",
+      placeholder: "Ej: ['valor1', 123, true] (deben ser JSON serializable)",
+      required: false,
+      hint: "Opcional. Argumentos que se pasarán a la función JavaScript.",
     },
     {
-      name: "browserId",
-      label: "Browser ID",
-      type: "text",
-      placeholder: "ID del navegador (ej. 1)",
+      name: "returnValue",
+      label: "¿Esperar valor de retorno?",
+      type: "boolean",
+      defaultValue: false,
       required: true,
+      hint: "Si está activo, el resultado del script se guardará en una variable.",
     },
     {
-      name: "endpoint",
-      label: "Endpoint (opcional)",
+      name: "variableName",
+      label: "Nombre de la Variable de Salida",
       type: "text",
-      placeholder: "http://localhost:2001/api/actions/execute_js",
+      placeholder: "Ej: titulo_pagina",
+      // Lógica de visibilidad condicional en el frontend
+      conditional: {
+        field: "returnValue",
+        is: true,
+      },
+      // Lógica de validación condicional en el frontend (replicando el Joi)
+      validation: (value, allParams) => {
+        if (allParams.returnValue === true && (!value || value.trim() === '')) {
+            return "Este campo es obligatorio cuando 'Esperar valor de retorno' está activo.";
+        }
+        return null;
+      },
     },
   ],
 

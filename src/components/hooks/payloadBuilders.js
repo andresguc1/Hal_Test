@@ -218,12 +218,12 @@ export const get_set_content = (payload) => {
 export const execute_js = (payload) => {
   const returnValue = asBoolean(payload?.returnValue, false);
   return {
-    script: asString(payload?.script),
+    script: asString(payload?.script), // Aquí se normaliza el script (la función anónima como string)
     returnValue: returnValue,
     variableName: returnValue
       ? asString(payload?.variableName, "resultado_js")
       : "",
-    args: asString(payload?.args),
+    args: asString(payload?.args), // Los argumentos serializados como string JSON
     browserId: asString(payload?.browserId),
   };
 };
