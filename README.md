@@ -1,183 +1,170 @@
-Hal Test Flow Manager
+# Hal Test Flow Manager
 
-A powerful React-based application for creating, managing, and executing automated flow sequences. Designed to integrate seamlessly with the HalTest Backend, which provides browser automation through Playwright.
+A powerful React-based application for creating, managing, and executing automated flow sequences. Designed to integrate seamlessly with the **HalTest Backend**, which provides browser automation through Playwright.
 
-🔗 Backend Repository
+---
 
-The HalTest Flow Manager works together with the HalTest backend.
-You can find the backend source code here:
+## 📦 Related Repositories
 
-👉 HalTest Backend Repository:
-https://github.com/andresguc1/hal-test_Backend
+### 🔗 HalTest Backend
 
-This backend exposes RESTful automation endpoints under /actions/:actionName, which the frontend uses to run browser-based automation.
+This frontend works together with the HalTest Backend, available here:
 
-🚀 Features
-🎨 Visual Flow Builder
+➡️ **Repository:** https://github.com/andresguc1/hal-test_Backend
 
-Interactive drag-and-drop editor powered by React Flow.
+The backend exposes RESTful endpoints for browser automation, action execution, session handling, Playwright control, and more. Make sure you have it running for full functionality.
 
-Quickly build complex automation flows.
+---
 
-Live editing of nodes, edges, and parameters.
+## 🚀 Features
 
-🧩 Node & Action Management
+### 🎨 **Visual Flow Builder**
 
-Nodes are synchronized with backend actions retrieved from /routes.
+- Interactive drag-and-drop interface powered by React Flow.
+- Easily create complex automation flows.
+- Real-time editing of nodes, edges, and parameters.
 
-Dynamic configuration panels based on backend Joi validation schemas.
+### 🧩 **Node & Action Management**
 
-Pre-validation before executing actions to prevent backend errors.
+- Node types automatically aligned with backend actions (retrieved from `/routes`).
+- Dynamic configuration panels based on backend **Joi schemas**.
+- Parameter validation before triggering an execution.
 
-🖥️ Flow Execution Engine
+### 🖥️ **Flow Execution Engine**
 
-Sequential execution of flow nodes through REST calls:
+- Execute entire flows by sending sequential REST calls to the backend:
+  - Each node corresponds to: `/actions/:actionName`
+  - Node parameters are sent in the request body
+- Real-time progress tracking for each action.
+- Error handling, logging, and execution reports.
 
-Each node triggers /actions/:actionName
+### 📁 **Import / Export**
 
-Parameters are sent as JSON
+- Export flows to JSON for reuse or sharing.
+- Import previously saved flows at any time.
 
-Real-time execution status, error handling, and logs.
+### 🗺️ **Navigation & Tools**
 
-Supports all backend automation categories (navigation, interactions, waits, screenshots, etc.).
+- Built-in minimap for large flows.
+- Collapsible side panels for a clean workspace.
+- Optional dark mode (if added later).
 
-📁 Import / Export
+### 🔌 **Full Integration With HalTest Backend**
 
-Export flows as JSON.
+Supports all backend features, including:
 
-Import saved flows anytime.
+- Browser launch & control
+- Navigation
+- DOM interactions
+- Wait conditions
+- Screenshots & DOM captures
+- Session & context management
+- Network mocking & interception
+- AI-based actions
+- CI-oriented test flows
 
-🗺️ Navigation & Tools
+---
 
-Integrated minimap for large flow diagrams.
+## 🛠️ Tech Stack
 
-Collapsible panels.
+- **React 18**
+- **Vite**
+- **React Flow**
+- **Axios / Fetch** (for backend communication)
+- **CSS Modules**
+- **React Icons**
+- **Vitest**
 
-Optional dark mode (if added later).
+---
 
-🔌 Full Backend Integration
+## 📦 Installation
 
-Supports all automation categories provided by HalTest Backend:
-
-Browser management
-
-Navigation
-
-DOM interactions
-
-Waits and conditions
-
-Screenshots & snapshots
-
-Context/session handling
-
-Network mocking/interception
-
-AI-powered operations
-
-CI/Test utilities
-
-🛠️ Tech Stack
-
-React 18
-
-Vite
-
-React Flow
-
-Axios / Fetch
-
-CSS Modules
-
-React Icons
-
-Vitest
-
-📦 Installation
+```bash
 git clone <repository-url>
 cd hal_test
 npm install
-
 🏃‍♂️ Usage
 Development
+bash
+Copy code
 npm run dev
+Open: http://localhost:5173
 
-Visit: http://localhost:5173
-
-Production
+Production Build
+bash
+Copy code
 npm run build
 npm run preview
-
 🔌 Backend Configuration
+Create a .env file to set the backend URL:
 
-Create a .env file to configure the backend endpoint:
-
+env
+Copy code
 VITE_API_URL=http://localhost:3000
+Use it in your API client:
 
-Example Axios client:
-
+js
+Copy code
 const api = axios.create({
-baseURL: import.meta.env.VITE_API_URL,
+  baseURL: import.meta.env.VITE_API_URL,
 });
-
 🧠 How Flow Execution Works
+Each flow node represents an automation action:
 
-Each node represents an automation action:
-
+json
+Copy code
 {
-"id": "1",
-"type": "actionNode",
-"data": {
-"action": "open_url",
-"params": { "url": "https://example.com" }
+  "id": "1",
+  "type": "actionNode",
+  "data": {
+    "action": "open_url",
+    "params": { "url": "https://example.com" }
+  }
 }
-}
+The frontend sends:
 
-The frontend makes a request:
-
+http
+Copy code
 POST {API_URL}/actions/open_url
 Content-Type: application/json
 
 {
-"url": "https://example.com"
+  "url": "https://example.com"
 }
+The backend executes it using Playwright and returns:
 
-Backend response example:
-
+json
+Copy code
 {
-"success": true,
-"result": "Page loaded successfully"
+  "success": true,
+  "result": "Page loaded"
 }
+By connecting nodes, you can visually build complete browser automation pipelines.
 
-This chaining mechanism allows full browser automation through visual flow design.
+📜 Available Scripts
+npm run dev – Start development server
 
-📜 Scripts
+npm run build – Build for production
 
-npm run dev – Development server
+npm run preview – Preview production build
 
-npm run build – Production build
+npm run lint – Run ESLint
 
-npm run preview – Preview build
+npm run format – Format code
 
-npm run lint – ESLint
-
-npm run format – Prettier
-
-npm test – Vitest
+npm test – Run tests
 
 🤝 Contributing
+Contributions are welcome! You can help improve:
 
-Contributions are welcome!
-Feel free to submit PRs for:
+Node/action components
 
-New node/automation types
+Flow editor UX/UI
 
-UI/UX improvements
+Execution engine
 
-Better execution handling
-
-Documentation enhancements
+Documentation
 
 📄 License
-
 MIT
+```
