@@ -257,6 +257,7 @@ function NodeConfigurationPanel({
         type_text: `${BACKEND_API_BASE}/type_text`,
         wait_for_element: `${BACKEND_API_BASE}/wait_for_element`,
         execute_js: `${BACKEND_API_BASE}/execute_js`,
+        select_option: `${BACKEND_API_BASE}/select_option`,
       };
 
       const defaultEndpoint =

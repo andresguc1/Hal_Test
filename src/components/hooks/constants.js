@@ -250,50 +250,53 @@ export const NODE_FIELD_CONFIGS = {
   select_option: [
     {
       name: "selector",
-      label: "Selector",
+      label: "Selector del Dropdown (<select>)",
       type: "text",
-      placeholder: '#dropdown-pais o //select[@id="pais"]',
+      placeholder: "Ej: #pais-dropdown o select[name='country']",
       required: true,
-      validation: (v) => {
-        if (!v || String(v).trim() === "") return "El selector es obligatorio";
+      validation: (value) => {
+        if (!value) return "El selector del elemento <select> es obligatorio.";
         return null;
       },
+      hint: "Debe ser el selector del elemento principal <select>, no de las opciones <option>.",
     },
     {
       name: "selectionCriteria",
-      label: "Criterio de selección",
+      label: "Criterio de Selección",
       type: "select",
-      defaultValue: "label",
       options: [
-        { value: "label", label: "Por texto visible (label)" },
-        { value: "value", label: "Por atributo value" },
-        { value: "index", label: "Por índice numérico" },
+        { value: "value", label: "Por Valor (atributo 'value')" },
+        { value: "label", label: "Por Etiqueta (texto visible)" },
+        { value: "index", label: "Por Índice (posición, empezando en 0)" },
       ],
+      defaultValue: "value",
+      required: true,
+      hint: "Define cómo Playwright debe buscar la opción a seleccionar.",
     },
     {
       name: "selectionValue",
-      label: "Valor a seleccionar",
+      label: "Valor a Seleccionar",
       type: "text",
-      placeholder: "Ejemplo: Chile o 3",
+      placeholder:
+        "Ej: 'ESP' si el criterio es Value, o 'España' si es Label, o '2' si es Index.",
       required: true,
-      validation: (v) => {
-        if (!v || String(v).trim() === "")
-          return "El valor de selección es obligatorio";
+      validation: (value) => {
+        if (!value) return "El valor, etiqueta o índice es obligatorio.";
         return null;
       },
     },
     {
-      name: "browserId",
-      label: "Browser ID",
-      type: "text",
-      placeholder: "ID del navegador (ej. 1)",
-      required: true,
-    },
-    {
-      name: "endpoint",
-      label: "Endpoint (opcional)",
-      type: "text",
-      placeholder: "http://localhost:2001/api/actions/select_option",
+      name: "timeout",
+      label: "Tiempo de espera (ms)",
+      type: "number",
+      placeholder: "Ej: 15000",
+      defaultValue: 30000,
+      min: 1,
+      validation: (value) => {
+        if (value !== undefined && value !== null && value < 1)
+          return "El tiempo de espera debe ser al menos 1 ms.";
+        return null;
+      },
     },
   ],
 
@@ -2315,7 +2318,8 @@ export const NODE_FIELD_CONFIGS = {
       defaultValue: 30000,
       min: 1,
       validation: (value) => {
-        if (value !== undefined && value !== null && value < 1) return "El tiempo de espera debe ser al menos 1 ms.";
+        if (value !== undefined && value !== null && value < 1)
+          return "El tiempo de espera debe ser al menos 1 ms.";
         return null;
       },
     },
@@ -2362,8 +2366,8 @@ export const NODE_FIELD_CONFIGS = {
       },
       // Lógica de validación condicional en el frontend (replicando el Joi)
       validation: (value, allParams) => {
-        if (allParams.returnValue === true && (!value || value.trim() === '')) {
-            return "Este campo es obligatorio cuando 'Esperar valor de retorno' está activo.";
+        if (allParams.returnValue === true && (!value || value.trim() === "")) {
+          return "Este campo es obligatorio cuando 'Esperar valor de retorno' está activo.";
         }
         return null;
       },
