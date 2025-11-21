@@ -264,6 +264,7 @@ function NodeConfigurationPanel({
         upload_file: `${BACKEND_API_BASE}/upload_file`,
         take_screenshot: `${BACKEND_API_BASE}/take_screenshot`,
         save_dom: `${BACKEND_API_BASE}/save_dom`,
+        log_errors: `${BACKEND_API_BASE}/log_errors`,
       };
 
       const defaultEndpoint =

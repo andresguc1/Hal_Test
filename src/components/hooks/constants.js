@@ -765,47 +765,41 @@ export const NODE_FIELD_CONFIGS = {
   log_errors: [
     {
       name: "logToFile",
-      label: "Guardar errores en archivo",
-      type: "checkbox",
-      defaultValue: true,
+      label: "¿Registrar Errores a Archivo?",
+      type: "boolean",
+      defaultValue: false,
+      required: true,
+      hint: "Si está activo, los errores de consola y JS se guardarán en el archivo especificado. Si no, solo se imprimen en la consola del backend.",
     },
     {
       name: "filePath",
-      label: "Ruta del archivo de log",
+      label: "Ruta del Archivo de Logs",
       type: "text",
-      placeholder: "/ruta/logs/errores_prueba_01.txt",
-      required: true,
-      validation: (v, formData) => {
-        if (formData.logToFile && (!v || String(v).trim() === "")) {
-          return "Debe especificarse una ruta de archivo si logToFile está activado";
+      placeholder: "Ej: ./logs/errores-test.log",
+      required: false,
+      // Lógica de visibilidad/requerimiento condicional
+      conditional: {
+        field: "logToFile",
+        is: true,
+      },
+      validation: (value, allParams) => {
+        // Replicamos la lógica Joi: si logToFile es true, filePath es obligatorio.
+        if (allParams.logToFile === true && (!value || value.trim() === '')) {
+            return "La ruta del archivo es obligatoria si 'Registrar Errores a Archivo' está activo.";
         }
         return null;
       },
+      hint: "Ruta completa del archivo de logs. (Ruta por defecto sugerida: storages/browser_logs/errors.log)",
     },
     {
       name: "timeout",
-      label: "Timeout (ms) — duración del monitoreo",
+      label: "Duración de Escucha (ms)",
       type: "number",
-      defaultValue: 15000,
-      validation: (v) => {
-        if (v === "" || v === undefined || Number.isNaN(Number(v)))
-          return "Timeout debe ser un número";
-        if (Number(v) <= 0) return "Timeout debe ser mayor que 0";
-        return null;
-      },
-    },
-    {
-      name: "browserId",
-      label: "Browser ID",
-      type: "text",
-      placeholder: "ID del navegador (ej. 1)",
+      placeholder: "0 (Indefinido)",
+      defaultValue: 0,
+      min: 0,
       required: true,
-    },
-    {
-      name: "endpoint",
-      label: "Endpoint (opcional)",
-      type: "text",
-      placeholder: "http://localhost:2001/api/actions/log_errors",
+      hint: "Tiempo que el backend esperará errores después de esta acción. 0 significa que la escucha es indefinida y se cancela al finalizar la prueba.",
     },
   ],
 

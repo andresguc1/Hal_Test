@@ -399,8 +399,8 @@ export const listen_events = (payload) => {
 export const log_errors = (payload) => {
   return {
     logToFile: asBoolean(payload?.logToFile, false),
-    filePath: asString(payload?.filePath),
-    timeout: asNumber(payload?.timeout, 15000, 1),
+    filePath: asString(payload?.filePath, null),
+    timeout: asNumber(payload?.timeout, 0, 0),
     browserId: asString(payload?.browserId),
   };
 };
