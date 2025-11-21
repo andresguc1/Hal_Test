@@ -329,7 +329,8 @@ export const NODE_FIELD_CONFIGS = {
       defaultValue: 30000,
       min: 1,
       validation: (value) => {
-        if (value !== undefined && value !== null && value < 1) return "El tiempo de espera debe ser al menos 1 ms.";
+        if (value !== undefined && value !== null && value < 1)
+          return "El tiempo de espera debe ser al menos 1 ms.";
         return null;
       },
     },
@@ -337,50 +338,53 @@ export const NODE_FIELD_CONFIGS = {
 
   scroll: [
     {
+      name: "selector",
+      label: "Selector del Contenedor (Opcional)",
+      type: "text",
+      placeholder:
+        "Ej: #contenedor-scroll. Si está vacío, desplaza toda la página.",
+      required: false,
+      hint: "Dejar vacío para desplazar la ventana principal del navegador. Usar un selector para desplazar un elemento específico.",
+    },
+    {
       name: "direction",
-      label: "Dirección del desplazamiento",
+      label: "Dirección de Desplazamiento",
       type: "select",
       options: [
-        { value: "up", label: "Arriba" },
-        { value: "down", label: "Abajo" },
-        { value: "left", label: "Izquierda" },
-        { value: "right", label: "Derecha" },
+        { value: "down", label: "Abajo (Down)" },
+        { value: "up", label: "Arriba (Up)" },
+        { value: "right", label: "Derecha (Right)" },
+        { value: "left", label: "Izquierda (Left)" },
       ],
       defaultValue: "down",
       required: true,
+      hint: "La dirección en la que se desplaza el contenido.",
     },
     {
       name: "amount",
-      label: "Cantidad de desplazamiento (px)",
+      label: "Cantidad de Píxeles",
       type: "number",
-      placeholder: "Ej. 500",
-      defaultValue: 500,
-      min: 0,
+      placeholder: "Ej: 500",
+      defaultValue: 100,
+      min: 1,
       required: true,
+      validation: (value) => {
+        if (value !== undefined && value !== null && value < 1)
+          return "La cantidad de píxeles debe ser al menos 1.";
+        return null;
+      },
+      hint: "Cantidad de píxeles a desplazar en la dirección especificada.",
     },
     {
       name: "behavior",
-      label: "Comportamiento de desplazamiento",
+      label: "Comportamiento",
       type: "select",
       options: [
-        { value: "smooth", label: "Suave (smooth)" },
-        { value: "instant", label: "Instantáneo" },
-        { value: "auto", label: "Automático" },
+        { value: "auto", label: "Inmediato (Auto)" },
+        { value: "smooth", label: "Suave (Smooth)" },
       ],
-      defaultValue: "smooth",
-    },
-    {
-      name: "browserId",
-      label: "Browser ID",
-      type: "text",
-      placeholder: "ID del navegador (ej. 1)",
+      defaultValue: "auto",
       required: true,
-    },
-    {
-      name: "endpoint",
-      label: "Endpoint (opcional)",
-      type: "text",
-      placeholder: "http://localhost:2001/api/actions/scroll",
     },
   ],
 
