@@ -258,6 +258,7 @@ function NodeConfigurationPanel({
         wait_for_element: `${BACKEND_API_BASE}/wait_for_element`,
         execute_js: `${BACKEND_API_BASE}/execute_js`,
         select_option: `${BACKEND_API_BASE}/select_option`,
+        submit_form: `${BACKEND_API_BASE}/submit_form`,
       };
 
       const defaultEndpoint =

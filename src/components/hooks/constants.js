@@ -303,34 +303,35 @@ export const NODE_FIELD_CONFIGS = {
   submit_form: [
     {
       name: "selector",
-      label: "Selector del formulario",
+      label: "Selector del Formulario o Botón de Envío",
       type: "text",
-      placeholder: '#formulario-login o //form[@id="loginForm"]',
+      placeholder: "Ej: form#login-form o button[type='submit']",
       required: true,
-      validation: (v) => {
-        if (!v || String(v).trim() === "")
-          return "El selector del formulario es obligatorio";
+      validation: (value) => {
+        if (!value) return "El selector es obligatorio.";
         return null;
       },
+      hint: "Debe ser el selector del elemento <form> o del botón que dispara el envío.",
     },
     {
       name: "waitForNavigation",
-      label: "Esperar navegación después del envío",
-      type: "checkbox",
+      label: "¿Esperar Navegación?",
+      type: "boolean",
       defaultValue: true,
-    },
-    {
-      name: "browserId",
-      label: "Browser ID",
-      type: "text",
-      placeholder: "ID del navegador (ej. 1)",
       required: true,
+      hint: "Si está activo, espera a que la página cargue después de enviar el formulario. Desactívalo si el envío es por AJAX.",
     },
     {
-      name: "endpoint",
-      label: "Endpoint (opcional)",
-      type: "text",
-      placeholder: "http://localhost:2001/api/actions/submit_form",
+      name: "timeout",
+      label: "Tiempo de espera (ms)",
+      type: "number",
+      placeholder: "Ej: 60000",
+      defaultValue: 30000,
+      min: 1,
+      validation: (value) => {
+        if (value !== undefined && value !== null && value < 1) return "El tiempo de espera debe ser al menos 1 ms.";
+        return null;
+      },
     },
   ],
 
