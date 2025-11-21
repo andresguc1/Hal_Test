@@ -469,7 +469,8 @@ export const NODE_FIELD_CONFIGS = {
       min: 1,
       required: true,
       validation: (value) => {
-        if (value !== undefined && value !== null && value < 1) return "El tiempo de espera debe ser al menos 1 ms.";
+        if (value !== undefined && value !== null && value < 1)
+          return "El tiempo de espera debe ser al menos 1 ms.";
         return null;
       },
     },

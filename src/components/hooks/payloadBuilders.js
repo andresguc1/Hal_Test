@@ -312,7 +312,12 @@ export const upload_file = (payload) => {
 
   if (filesString) {
     // Intentamos dividir la cadena por comas y limpiamos espacios.
-    filesArray = filesString.split(',').map(path => path.trim()).filter(path => path.length > 0);
+    filesArray = filesString;
+    console
+      .log(filesArray)
+      .split(",")
+      .map((path) => path.trim())
+      .filter((path) => path.length > 0);
   }
 
   return {
@@ -321,15 +326,13 @@ export const upload_file = (payload) => {
     // **NOTA:** Aquí hay una discrepancia: Joi espera `Joi.string().trim().required()` para `files`.
     // Si el BE realmente quiere el string, lo enviamos crudo; si el BE necesita el array
     // (que es lo más probable para Playwright), el Joi schema del BE debería ser adaptado,
-    // o el BE debe manejar la división. **Mantendremos el string** para cumplir el schema Joi dado, 
+    // o el BE debe manejar la división. **Mantendremos el string** para cumplir el schema Joi dado,
     // y el controlador se encargará de dividirlo.
     files: filesString,
     timeout: asNumber(payload?.timeout, 30000, 1),
     browserId: asString(payload?.browserId),
   };
 };
-
-
 
 // ---------------------------------------------
 // Builders (Esperas)
