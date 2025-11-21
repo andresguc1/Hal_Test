@@ -297,9 +297,10 @@ export const submit_form = (payload) => {
 
 export const scroll = (payload) => {
   return {
+    selector: asString(payload?.selector, ""),
     direction: asString(payload?.direction, "down"),
-    amount: asNumber(payload?.amount, 0),
-    behavior: asString(payload?.behavior, "smooth"),
+    amount: asNumber(payload?.amount, 100),
+    behavior: asString(payload?.behavior, "auto"),
     browserId: asString(payload?.browserId),
   };
 };
@@ -308,7 +309,7 @@ export const drag_drop = (payload) => {
   return {
     sourceSelector: asString(payload?.sourceSelector),
     targetSelector: asString(payload?.targetSelector),
-    steps: asNumber(payload?.steps, 20, 1),
+    steps: asNumber(payload?.steps, 10, 1),
     force: asBoolean(payload?.force, false),
     browserId: asString(payload?.browserId),
   };

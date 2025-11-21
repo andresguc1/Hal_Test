@@ -260,6 +260,7 @@ function NodeConfigurationPanel({
         select_option: `${BACKEND_API_BASE}/select_option`,
         submit_form: `${BACKEND_API_BASE}/submit_form`,
         scroll: `${BACKEND_API_BASE}/scroll`,
+        drag_drop: `${BACKEND_API_BASE}/drag_drop`,
       };
 
       const defaultEndpoint =

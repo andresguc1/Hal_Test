@@ -391,55 +391,48 @@ export const NODE_FIELD_CONFIGS = {
   drag_drop: [
     {
       name: "sourceSelector",
-      label: "Selector del elemento origen",
+      label: "Selector de Origen (Elemento a Arrastrar)",
       type: "text",
-      placeholder: "#draggable-element",
+      placeholder: "Ej: #draggable-item",
       required: true,
-      validation: (v) => {
-        if (!v || String(v).trim() === "")
-          return "El selector de origen es obligatorio.";
+      validation: (value) => {
+        if (!value) return "El selector de origen es obligatorio.";
         return null;
       },
     },
     {
       name: "targetSelector",
-      label: "Selector del elemento destino",
+      label: "Selector de Destino (Elemento donde Soltar)",
       type: "text",
-      placeholder: "#dropzone-element",
+      placeholder: "Ej: #droppable-area",
       required: true,
-      validation: (v) => {
-        if (!v || String(v).trim() === "")
-          return "El selector de destino es obligatorio.";
+      validation: (value) => {
+        if (!value) return "El selector de destino es obligatorio.";
         return null;
       },
     },
     {
       name: "steps",
-      label: "Número de pasos (suavidad del arrastre)",
+      label: "Pasos de Animación",
       type: "number",
-      defaultValue: 20,
+      placeholder: "Ej: 20",
+      defaultValue: 10,
       min: 1,
-      max: 100,
       required: true,
+      validation: (value) => {
+        if (value !== undefined && value !== null && value < 1)
+          return "El número de pasos debe ser al menos 1.";
+        return null;
+      },
+      hint: "Número de pasos para simular el movimiento del ratón. Más pasos = animación más suave.",
     },
     {
       name: "force",
-      label: "Forzar arrastre aunque el elemento no sea visible",
-      type: "checkbox",
+      label: "¿Forzar Acción?",
+      type: "boolean",
       defaultValue: false,
-    },
-    {
-      name: "browserId",
-      label: "Browser ID",
-      type: "text",
-      placeholder: "ID del navegador (ej. 1)",
       required: true,
-    },
-    {
-      name: "endpoint",
-      label: "Endpoint (opcional)",
-      type: "text",
-      placeholder: "http://localhost:2001/api/actions/drag_drop",
+      hint: "Si está activo, ignora las comprobaciones de visibilidad/editabilidad de Playwright antes de arrastrar.",
     },
   ],
 
