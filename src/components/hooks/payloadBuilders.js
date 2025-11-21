@@ -305,12 +305,26 @@ export const scroll = (payload) => {
   };
 };
 
-export const drag_drop = (payload) => {
+export const upload_file = (payload) => {
+  // Playwright espera un array de rutas (strings)
+  const filesString = asString(payload?.files);
+  let filesArray = [];
+
+  if (filesString) {
+    // Intentamos dividir la cadena por comas y limpiamos espacios.
+    filesArray = filesString.split(',').map(path => path.trim()).filter(path => path.length > 0);
+  }
+  
   return {
-    sourceSelector: asString(payload?.sourceSelector),
-    targetSelector: asString(payload?.targetSelector),
-    steps: asNumber(payload?.steps, 10, 1),
-    force: asBoolean(payload?.force, false),
+    selector: asString(payload?.selector),
+    // Enviamos el array de rutas, aunque el schema Joi espera un string.
+    // **NOTA:** Aquí hay una discrepancia: Joi espera `Joi.string().trim().required()` para `files`.
+    // Si el BE realmente quiere el string, lo enviamos crudo; si el BE necesita el array
+    // (que es lo más probable para Playwright), el Joi schema del BE debería ser adaptado,
+    // o el BE debe manejar la división. **Mantendremos el string** para cumplir el schema Joi dado, 
+    // y el controlador se encargará de dividirlo.
+    files: filesString, 
+    timeout: asNumber(payload?.timeout, 30000, 1),
     browserId: asString(payload?.browserId),
   };
 };

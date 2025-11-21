@@ -439,40 +439,39 @@ export const NODE_FIELD_CONFIGS = {
   upload_file: [
     {
       name: "selector",
-      label: "Selector del input de archivo",
+      label: "Selector del Input File",
       type: "text",
-      placeholder: "input[type='file']",
+      placeholder: "Ej: input[type='file'] o #file-upload-input",
       required: true,
-      validation: (v) => {
-        if (!v || String(v).trim() === "") return "El selector es obligatorio.";
+      validation: (value) => {
+        if (!value) return "El selector del input file es obligatorio.";
         return null;
       },
     },
     {
       name: "files",
-      label: "Rutas absolutas de archivos (separadas por comas)",
-      type: "textarea",
-      placeholder:
-        "/ruta/absoluta/a/documento1.pdf,/ruta/absoluta/a/imagen2.jpg",
+      label: "Rutas de Archivos (Separadas por coma si son varias)",
+      type: "textarea", // Usamos textarea para múltiples rutas
+      placeholder: "Ej: /ruta/a/archivo1.pdf, /ruta/a/archivo2.png",
       required: true,
-      validation: (v) => {
-        if (!v || String(v).trim() === "")
-          return "Debes especificar al menos un archivo.";
+      validation: (value) => {
+        if (!value) return "Las rutas de los archivos son obligatorias.";
         return null;
       },
+      hint: "Las rutas deben ser accesibles desde el entorno donde se ejecuta el backend (servidor de automatización).",
     },
     {
-      name: "browserId",
-      label: "Browser ID",
-      type: "text",
-      placeholder: "ID del navegador (ej. 1)",
+      name: "timeout",
+      label: "Tiempo de espera (ms)",
+      type: "number",
+      placeholder: "Ej: 45000",
+      defaultValue: 30000,
+      min: 1,
       required: true,
-    },
-    {
-      name: "endpoint",
-      label: "Endpoint (opcional)",
-      type: "text",
-      placeholder: "http://localhost:2001/api/actions/upload_file",
+      validation: (value) => {
+        if (value !== undefined && value !== null && value < 1) return "El tiempo de espera debe ser al menos 1 ms.";
+        return null;
+      },
     },
   ],
 
