@@ -407,15 +407,10 @@ export const log_errors = (payload) => {
 
 export const save_dom = (payload) => {
   return {
-    selector:
-      payload?.selector != null && payload.selector !== ""
-        ? asString(payload.selector)
-        : null,
-    variableName: asString(payload?.variableName, "html_guardado"),
-    path:
-      payload?.path != null && payload.path !== ""
-        ? asString(payload.path)
-        : null,
+    selector: asString(payload?.selector, null),
+    path: asString(payload?.path, null),
+    variableName: asString(payload?.variableName, null),
+    timeout: asNumber(payload?.timeout, 30000, 1),
     browserId: asString(payload?.browserId),
   };
 };
@@ -423,10 +418,10 @@ export const save_dom = (payload) => {
 export const take_screenshot = (payload) => {
   return {
     selector: asString(payload?.selector, null),
-    path: asString(payload?.path, null), 
+    path: asString(payload?.path, null),
     fullPage: asBoolean(payload?.fullPage, false),
-    format: asString(payload?.format, 'png'),
-    quality: asNumber(payload?.quality, 100, 1, 100), 
+    format: asString(payload?.format, "png"),
+    quality: asNumber(payload?.quality, 100, 1, 100),
     timeout: asNumber(payload?.timeout, 30000, 1),
     browserId: asString(payload?.browserId),
   };

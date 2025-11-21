@@ -693,7 +693,8 @@ export const NODE_FIELD_CONFIGS = {
       max: 100,
       required: true,
       validation: (value) => {
-        if (value !== undefined && value !== null && (value < 1 || value > 100)) return "La calidad debe estar entre 1 y 100.";
+        if (value !== undefined && value !== null && (value < 1 || value > 100))
+          return "La calidad debe estar entre 1 y 100.";
         return null;
       },
       hint: "Solo se aplica si el formato es JPEG.",
@@ -712,42 +713,52 @@ export const NODE_FIELD_CONFIGS = {
   save_dom: [
     {
       name: "selector",
-      label: "Selector (opcional)",
+      label: "Selector del Elemento (Opcional)",
       type: "text",
-      placeholder:
-        "#tabla-de-resultados o dejar vacío para guardar todo el DOM",
-      defaultValue: "",
+      placeholder: "Ej: #content-body. Si está vacío, guarda el DOM completo.",
+      required: false,
+      hint: "Dejar vacío para guardar todo el contenido HTML de la página.",
+    },
+    {
+      name: "path",
+      label: "Ruta de Guardado de Archivo (Opcional)",
+      type: "text",
+      placeholder: "Ej: ./snapshots/homepage.html",
+      required: false,
+      hint: "Si está vacío, el DOM se guardará en la variable especificada. (Ruta por defecto: storages/dom_snapshots/)",
     },
     {
       name: "variableName",
-      label: "Nombre de variable donde guardar HTML",
+      label: "Nombre de la Variable de Salida",
       type: "text",
-      placeholder: "html_tabla",
-      required: true,
-      validation: (v) => {
-        if (!v || String(v).trim() === "") return "variableName es obligatorio";
+      placeholder: "Ej: html_content",
+      required: false,
+      // Lógica de visibilidad/requerimiento condicional
+      conditional: {
+        field: "path",
+        is: null, // Si path está vacío o nulo
+      },
+      validation: (value, allParams) => {
+        // Replicamos la lógica Joi: si path no está presente o está vacío, variableName es obligatorio.
+        if (!allParams.path && (!value || value.trim() === "")) {
+          return "Este campo es obligatorio si NO se proporciona una ruta de archivo (Path).";
+        }
         return null;
       },
     },
     {
-      name: "path",
-      label: "Ruta de archivo (opcional)",
-      type: "text",
-      placeholder: "/ruta/a/archivo.html (o dejar vacío)",
-      defaultValue: "",
-    },
-    {
-      name: "browserId",
-      label: "Browser ID",
-      type: "text",
-      placeholder: "ID del navegador (ej. 1)",
+      name: "timeout",
+      label: "Tiempo de espera (ms)",
+      type: "number",
+      placeholder: "Ej: 30000",
+      defaultValue: 30000,
+      min: 1,
       required: true,
-    },
-    {
-      name: "endpoint",
-      label: "Endpoint (opcional)",
-      type: "text",
-      placeholder: "http://localhost:2001/api/actions/save_dom",
+      validation: (value) => {
+        if (value !== undefined && value !== null && value < 1)
+          return "El tiempo de espera debe ser al menos 1 ms.";
+        return null;
+      },
     },
   ],
 
