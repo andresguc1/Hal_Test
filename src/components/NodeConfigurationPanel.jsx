@@ -262,6 +262,7 @@ function NodeConfigurationPanel({
         scroll: `${BACKEND_API_BASE}/scroll`,
         drag_drop: `${BACKEND_API_BASE}/drag_drop`,
         upload_file: `${BACKEND_API_BASE}/upload_file`,
+        take_screenshot: `${BACKEND_API_BASE}/take_screenshot`,
       };
 
       const defaultEndpoint =

@@ -422,10 +422,12 @@ export const save_dom = (payload) => {
 
 export const take_screenshot = (payload) => {
   return {
-    path: asString(payload?.path),
-    fullPage: asBoolean(payload?.fullPage, true),
-    format: asString(payload?.format, "jpeg").toLowerCase(),
-    quality: asNumber(payload?.quality, 85, 1, 100),
+    selector: asString(payload?.selector, null),
+    path: asString(payload?.path, null), 
+    fullPage: asBoolean(payload?.fullPage, false),
+    format: asString(payload?.format, 'png'),
+    quality: asNumber(payload?.quality, 100, 1, 100), 
+    timeout: asNumber(payload?.timeout, 30000, 1),
     browserId: asString(payload?.browserId),
   };
 };

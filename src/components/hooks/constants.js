@@ -649,61 +649,63 @@ export const NODE_FIELD_CONFIGS = {
 
   take_screenshot: [
     {
-      name: "path",
-      label: "Ruta de guardado",
+      name: "selector",
+      label: "Selector del Elemento (Opcional)",
       type: "text",
-      placeholder: "/ruta/de/guardado/captura_login.jpeg",
-      required: true,
-      validation: (v) => {
-        if (!v || String(v).trim() === "")
-          return "La ruta (path) es obligatoria";
-        return null;
-      },
+      placeholder: "Ej: #mi-banner. Si está vacío, captura la página/viewport.",
+      required: false,
+      hint: "Dejar vacío para capturar toda la ventana o página (según Full Page).",
+    },
+    {
+      name: "path",
+      label: "Ruta de Guardado (Opcional)",
+      type: "text",
+      placeholder: "Ej: ./screenshots/login.png",
+      required: false,
+      hint: "Ruta en el servidor de automatización. Si está vacía, devuelve la imagen en la respuesta (útil para IA).",
     },
     {
       name: "fullPage",
-      label: "Captura de página completa",
-      type: "checkbox",
-      defaultValue: true,
+      label: "¿Capturar Página Completa?",
+      type: "boolean",
+      defaultValue: false,
+      required: true,
+      hint: "Si está activo, desplaza y captura toda la longitud de la página. Ignorado si se usa Selector.",
     },
     {
       name: "format",
-      label: "Formato de imagen",
+      label: "Formato de Imagen",
       type: "select",
-      defaultValue: "jpeg",
       options: [
-        { value: "jpeg", label: "JPEG" },
-        { value: "png", label: "PNG" },
-        { value: "webp", label: "WEBP" },
+        { value: "png", label: "PNG (Sin pérdida, por defecto)" },
+        { value: "jpeg", label: "JPEG (Comprimido, permite calidad)" },
       ],
-    },
-    {
-      name: "quality",
-      label: "Calidad (solo para JPEG o WEBP)",
-      type: "number",
-      defaultValue: 85,
-      validation: (v, formData) => {
-        if (["jpeg", "webp"].includes(formData.format)) {
-          if (v === "" || v === undefined || Number.isNaN(Number(v)))
-            return "La calidad debe ser un número";
-          if (Number(v) < 1 || Number(v) > 100)
-            return "La calidad debe estar entre 1 y 100";
-        }
-        return null;
-      },
-    },
-    {
-      name: "browserId",
-      label: "Browser ID",
-      type: "text",
-      placeholder: "ID del navegador (ej. 1)",
+      defaultValue: "png",
       required: true,
     },
     {
-      name: "endpoint",
-      label: "Endpoint (opcional)",
-      type: "text",
-      placeholder: "http://localhost:2001/api/actions/take_screenshot",
+      name: "quality",
+      label: "Calidad (1-100)",
+      type: "number",
+      placeholder: "100",
+      defaultValue: 100,
+      min: 1,
+      max: 100,
+      required: true,
+      validation: (value) => {
+        if (value !== undefined && value !== null && (value < 1 || value > 100)) return "La calidad debe estar entre 1 y 100.";
+        return null;
+      },
+      hint: "Solo se aplica si el formato es JPEG.",
+    },
+    {
+      name: "timeout",
+      label: "Tiempo de espera (ms)",
+      type: "number",
+      placeholder: "Ej: 45000",
+      defaultValue: 30000,
+      min: 1,
+      required: true,
     },
   ],
 
