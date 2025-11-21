@@ -314,7 +314,7 @@ export const upload_file = (payload) => {
     // Intentamos dividir la cadena por comas y limpiamos espacios.
     filesArray = filesString.split(',').map(path => path.trim()).filter(path => path.length > 0);
   }
-  
+
   return {
     selector: asString(payload?.selector),
     // Enviamos el array de rutas, aunque el schema Joi espera un string.
@@ -323,19 +323,13 @@ export const upload_file = (payload) => {
     // (que es lo más probable para Playwright), el Joi schema del BE debería ser adaptado,
     // o el BE debe manejar la división. **Mantendremos el string** para cumplir el schema Joi dado, 
     // y el controlador se encargará de dividirlo.
-    files: filesString, 
+    files: filesString,
     timeout: asNumber(payload?.timeout, 30000, 1),
     browserId: asString(payload?.browserId),
   };
 };
 
-export const upload_file = (payload) => {
-  return {
-    selector: asString(payload?.selector),
-    files: asString(payload?.files), // Puede ser una ruta o varias
-    browserId: asString(payload?.browserId),
-  };
-};
+
 
 // ---------------------------------------------
 // Builders (Esperas)
