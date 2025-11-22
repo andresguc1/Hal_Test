@@ -93,6 +93,24 @@ const asJsonString = (value, required = false, fieldName = "Campo") => {
 // Builders de Payload (Acciones del Navegador)
 // ---------------------------------------------
 
+export const launch_browser = (payload) => {
+  return {
+    browserType: asString(payload?.browserType, "chromium"),
+    headless: asBoolean(payload?.headless, true),
+    slowMo: asNumber(payload?.slowMo, 0, 0),
+    args: asString(payload?.args, ""),
+  };
+};
+
+export const open_url = (payload) => {
+  return {
+    url: asString(payload?.url),
+    waitUntil: asString(payload?.waitUntil, "load"),
+    timeout: asNumber(payload?.timeout, 30000),
+    browserId: asString(payload?.browserId),
+  };
+};
+
 export const close_browser = (payload) => {
   return {
     browserId: asString(payload?.browserId), // Puede ser vacío si es el primero
@@ -118,6 +136,7 @@ export const resize_viewport = (payload = {}) => {
   const body = {
     width: Math.trunc(width),
     height: Math.trunc(height),
+    browserId: asString(payload?.browserId),
   };
 
   return body;
@@ -129,9 +148,10 @@ export const manage_tabs = (payload = {}) => {
   const allowed = ["new", "switch", "close", "list", "navigate"];
   const act = allowed.includes(action) ? action : "new";
 
-  // body ya NO incluye browserId
+  // body ya NO incluye browserId -> CORRECCIÓN: SÍ debe incluirlo
   const body = {
     action: act,
+    browserId: asString(payload?.browserId),
   };
 
   // --- Manejo de tabIndex (para switch, close, navigate) ---
@@ -172,7 +192,9 @@ export const manage_tabs = (payload = {}) => {
  */
 export const go_back = (_payload = {}) => {
   console.log(_payload);
-  return {};
+  return {
+    browserId: asString(_payload?.browserId),
+  };
 };
 
 /**
@@ -182,7 +204,9 @@ export const go_back = (_payload = {}) => {
  */
 export const go_forward = (_payload = {}) => {
   console.log(_payload);
-  return {};
+  return {
+    browserId: asString(_payload?.browserId),
+  };
 };
 
 // ---------------------------------------------
@@ -265,9 +289,11 @@ export const click = (payload = {}) => {
   const finalButton = allowedButtons.includes(button) ? button : "left";
 
   // Construir el payload final
+  // Construir el payload final
   const body = {
     selector: selector,
     button: finalButton,
+    browserId: asString(payload?.browserId),
   };
 
   return body;
@@ -292,9 +318,10 @@ export const type_text = (payload = {}) => {
     clearBeforeType: asBoolean(payload?.clearBeforeType, true), // Default: true (según Joi)
     delay: asNumber(payload?.delay, 0, 0), // Default: 0, Mín: 0 (según Joi)
     timeout: asNumber(payload?.timeout, 30000, 1), // Default: 30000, Mín: 1 (según Joi)
+    browserId: asString(payload?.browserId),
   };
 
-  // browserId no se incluye, ya que lo maneja el backend.
+  // browserId no se incluye, ya que lo maneja el backend. -> CORRECCIÓN: SÍ se incluye
 
   return body;
 };

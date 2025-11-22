@@ -699,6 +699,34 @@ export const useFlowManager = () => {
         return { success: false, error: "Ciclo detectado" };
       }
 
+      // --- DEBUG LOGGING ---
+      console.group("🚀 Execute Flow - Plan");
+      console.log("Total Nodes:", sortedNodes.length);
+      console.log("Execution Order (Topological Sort):");
+
+      const debugNodes = sortedNodes.map((node, index) => {
+        const outgoingEdges = edges.filter((e) => e.source === node.id);
+        const nextNodes = outgoingEdges.map((e) => {
+          const targetNode = nodes.find((n) => n.id === e.target);
+          return targetNode
+            ? `${targetNode.data.label} (${targetNode.id})`
+            : e.target;
+        });
+
+        return {
+          step: index + 1,
+          id: node.id,
+          type: node.data.type,
+          label: node.data.label,
+          payload: node.data.configuration,
+          nextSteps: nextNodes,
+        };
+      });
+
+      console.table(debugNodes);
+      console.groupEnd();
+      // ---------------------
+
       executionAbortController.current = new AbortController();
       resetNodeStates();
 
@@ -717,15 +745,30 @@ export const useFlowManager = () => {
         message: `Ejecutando flujo (${sortedNodes.length} pasos)...`,
       });
 
+      const runtimeContext = {};
+
       for (let i = 0; i < sortedNodes.length; i++) {
         const node = sortedNodes[i];
+
+        // Merge runtime context (e.g., browserId) into the payload
+        const payload = {
+          ...(node.data.configuration || {}),
+          ...runtimeContext,
+        };
+
         const action = {
           nodeId: node.id,
           type: node.data.type,
-          payload: node.data.configuration || {},
+          payload,
         };
 
         const result = await executeStep(action, options);
+
+        // Update runtime context with new instanceId/browserId if available
+        if (result.success && result.instanceId) {
+          runtimeContext.browserId = result.instanceId;
+          runtimeContext.instanceId = result.instanceId;
+        }
 
         if (result.skipped) {
           stats.skipped++;
@@ -765,14 +808,7 @@ export const useFlowManager = () => {
 
       return { success: allSuccess, stats };
     },
-    [
-      nodes,
-      edges,
-      topologicalSort,
-      executeStep,
-      resetNodeStates,
-      executionStats,
-    ],
+    [nodes, edges, topologicalSort, executionStats],
   );
 
   // ========================================
