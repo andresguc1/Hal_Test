@@ -12,6 +12,9 @@ import { v4 as uuidv4 } from "uuid";
 import { NODE_LABELS, STORAGE_KEYS } from "./constants";
 import * as payloadBuilders from "./payloadBuilders";
 import { NODE_STATES, PROFESSIONAL_COLORS, getNodeStyle } from "./flowStyles";
+import { debounce, wouldCreateCycle } from "../../utils/flowUtils";
+import { logger } from "../../utils/logger";
+import { storageManager } from "../../utils/storageManager";
 
 const MAX_RETRIES = 3;
 const RETRY_BASE_MS = 1000;
@@ -49,17 +52,17 @@ const createExecutedLabel = (action) => {
 const DEFAULT_EDGE_OPTIONS = {
   animated: true,
   style: {
-    stroke: PROFESSIONAL_COLORS[NODE_STATES.DEFAULT].border,
-    strokeWidth: 2,
+    stroke: "#00D9FF", // Bright cyan for better visibility
+    strokeWidth: 2.5, // Slightly thicker
   },
   markerEnd: {
     type: "arrowclosed",
-    color: PROFESSIONAL_COLORS[NODE_STATES.DEFAULT].border,
+    color: "#00D9FF", // Bright cyan arrow
   },
 };
 
 export const useFlowManager = () => {
-  const { getViewport } = useReactFlow();
+  const { getViewport, fitView } = useReactFlow();
 
   const [nodes, setNodes] = useState([]);
   const [edges, setEdges] = useState([]);
@@ -89,6 +92,20 @@ export const useFlowManager = () => {
 
   nodesRef.current = nodes;
   edgesRef.current = edges;
+
+  // ========================================
+  // OPTIMIZACIÓN: Cleanup de AbortController
+  // ========================================
+  useEffect(() => {
+    return () => {
+      // Cleanup al desmontar componente
+      if (executionAbortController.current) {
+        executionAbortController.current.abort();
+        executionAbortController.current = null;
+        logger.debug("AbortController cleaned up", null, "useFlowManager");
+      }
+    };
+  }, []);
 
   // ========================================
   // OPTIMIZACIÓN 3: Topological Sort memoizado
@@ -151,10 +168,13 @@ export const useFlowManager = () => {
       };
 
       try {
-        localStorage.setItem(
-          STORAGE_KEYS.flow || "flow",
-          JSON.stringify(flowData),
-        );
+        // Use storageManager instead of direct localStorage
+        const success = storageManager.set("flow", flowData);
+
+        if (!success) {
+          throw new Error("Storage quota exceeded");
+        }
+
         if (!silent) {
           setApiStatus({
             state: "success",
@@ -163,7 +183,7 @@ export const useFlowManager = () => {
         }
         return flowData;
       } catch (err) {
-        console.error("Error al guardar el flujo en localStorage:", err);
+        logger.error("Error al guardar el flujo", err, "useFlowManager");
         setApiStatus({
           state: "error",
           message: `✗ Error al guardar: ${err.message}`,
@@ -174,18 +194,28 @@ export const useFlowManager = () => {
     [nodes, edges, getViewport, executionStats],
   );
 
-  // Auto-guardado
+  // ========================================
+  // OPTIMIZACIÓN: Auto-guardado con debounce
+  // ========================================
   useEffect(() => {
-    if (!autoSaveEnabled) return;
+    if (!autoSaveEnabled || nodes.length === 0) return;
 
-    const interval = setInterval(() => {
-      if (nodes.length > 0) {
-        saveFlow(true);
-      }
-    }, AUTO_SAVE_INTERVAL);
+    // Debounce de 2 segundos - solo guarda si no hay cambios recientes
+    const debouncedSave = debounce(() => {
+      logger.debug(
+        "Auto-saving flow",
+        { nodeCount: nodes.length },
+        "useFlowManager",
+      );
+      saveFlow(true);
+    }, 2000);
 
-    return () => clearInterval(interval);
-  }, [nodes.length, autoSaveEnabled, saveFlow]);
+    debouncedSave();
+
+    return () => {
+      debouncedSave.cancel();
+    };
+  }, [nodes, edges, autoSaveEnabled, saveFlow]);
 
   // ========================================
   // OPTIMIZACIÓN 5: Batch updates con useCallback
@@ -285,26 +315,32 @@ export const useFlowManager = () => {
   const addNode = useCallback(
     (typeKey) => {
       saveToHistory();
-      const viewport = getViewport();
-      const xOffset = 200;
-      const yOffset = 50;
       const id = generateNodeId();
       const label = NODE_LABELS[typeKey] || typeKey;
 
+      // Calculate position based on existing nodes to avoid overlap
+      const nodeWidth = 160; // Reduced from 220
+      const nodeHeight = 60; // Reduced from 80
+      const horizontalSpacing = 80; // Reduced from 100
+      const verticalSpacing = 80; // Reduced from 100
+      const nodesPerRow = 3; // Number of nodes per row
+
+      // Calculate grid position
+      const nodeCount = nodesRef.current.length;
+      const row = Math.floor(nodeCount / nodesPerRow);
+      const col = nodeCount % nodesPerRow;
+
       const newNode = {
         id,
+        type: "custom", // Use custom memoized node type
+        position: {
+          x: col * (nodeWidth + horizontalSpacing),
+          y: row * (nodeHeight + verticalSpacing),
+        },
         data: {
-          label,
-          type: typeKey,
-          executed: false,
+          label, // Only show user-friendly label
           configuration: {},
           state: NODE_STATES.DEFAULT,
-          retryCount: 0,
-          errorDetails: null,
-        },
-        position: {
-          x: viewport.x + viewport.zoom * xOffset,
-          y: viewport.y + viewport.zoom * yOffset,
         },
         style: getNodeStyle(NODE_STATES.DEFAULT),
         sourcePosition: "right",
@@ -317,8 +353,13 @@ export const useFlowManager = () => {
         nodeId: id,
         currentData: newNode.data.configuration,
       });
+
+      // Auto-fit view after adding node
+      setTimeout(() => {
+        fitView({ padding: 0.1, duration: 200 });
+      }, 100);
     },
-    [getViewport, saveToHistory],
+    [saveToHistory, fitView],
   );
 
   const deleteNode = useCallback(
@@ -573,6 +614,26 @@ export const useFlowManager = () => {
   // ========================================
   const onConnect = useCallback(
     (connection) => {
+      console.log('🔗 onConnect triggered!', connection);
+      console.log('📊 Current nodes:', nodes.length);
+      console.log('📊 Current edges:', edges.length);
+
+      // OPTIMIZACIÓN: Validar ciclos antes de agregar edge
+      if (wouldCreateCycle(connection, nodes, edges)) {
+        console.log('❌ Cycle detected, rejecting connection');
+        logger.warn(
+          "Cycle detected, connection rejected",
+          connection,
+          "useFlowManager",
+        );
+        setApiStatus({
+          state: "warning",
+          message: "⚠️ No se puede crear un ciclo en el flujo",
+        });
+        return;
+      }
+
+      console.log('✅ Adding edge...');
       saveToHistory();
       setEdges((eds) =>
         addEdge(
@@ -583,8 +644,11 @@ export const useFlowManager = () => {
           eds,
         ),
       );
+
+      console.log('✅ Edge added successfully');
+      logger.debug("Edge added", connection, "useFlowManager");
     },
-    [saveToHistory],
+    [saveToHistory, nodes, edges],
   );
 
   const onNodesChange = useCallback(
@@ -710,6 +774,151 @@ export const useFlowManager = () => {
     ],
   );
 
+  // ========================================
+  // Export and Import Flow Functions
+  // ========================================
+
+  /**
+   * Exports the current flow as a downloadable JSON file
+   * @returns {object} The exported flow data
+   */
+  const exportFlow = useCallback(() => {
+    const flowData = {
+      nodes,
+      edges,
+      viewport: getViewport(),
+      timestamp: new Date().toISOString(),
+      version: "2.0",
+      stats: executionStats,
+      metadata: {
+        exportedAt: new Date().toISOString(),
+        nodeCount: nodes.length,
+        edgeCount: edges.length,
+      },
+    };
+
+    try {
+      // Create blob and download
+      const blob = new Blob([JSON.stringify(flowData, null, 2)], {
+        type: "application/json",
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `hal_test_flow_${Date.now()}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+
+      setApiStatus({
+        state: "success",
+        message: "✓ Flujo exportado correctamente",
+      });
+
+      return flowData;
+    } catch (error) {
+      console.error("Error al exportar el flujo:", error);
+      setApiStatus({
+        state: "error",
+        message: `✗ Error al exportar: ${error.message}`,
+      });
+      throw error;
+    }
+  }, [nodes, edges, getViewport, executionStats]);
+
+  /**
+   * Imports a flow from a JSON file
+   * @returns {Promise<void>}
+   */
+  const importFlow = useCallback(() => {
+    return new Promise((resolve, reject) => {
+      try {
+        // Create file input element
+        const input = document.createElement("input");
+        input.type = "file";
+        input.accept = ".json,application/json";
+
+        input.onchange = async (e) => {
+          const file = e.target.files?.[0];
+          if (!file) {
+            reject(new Error("No se seleccionó ningún archivo"));
+            return;
+          }
+
+          try {
+            const text = await file.text();
+            const flowData = JSON.parse(text);
+
+            // Validate flow data structure
+            if (!flowData.nodes || !Array.isArray(flowData.nodes)) {
+              throw new Error(
+                "Formato de archivo inválido: falta el array de nodos",
+              );
+            }
+
+            if (!flowData.edges || !Array.isArray(flowData.edges)) {
+              throw new Error(
+                "Formato de archivo inválido: falta el array de edges",
+              );
+            }
+
+            // Save to history before importing
+            saveToHistory();
+
+            // Import the flow
+            setNodes(flowData.nodes);
+            setEdges(flowData.edges);
+
+            // Reset execution stats
+            setExecutionStats({
+              total: 0,
+              successful: 0,
+              failed: 0,
+              skipped: 0,
+              duration: 0,
+            });
+
+            setApiStatus({
+              state: "success",
+              message: `✓ Flujo importado: ${flowData.nodes.length} nodos, ${flowData.edges.length} conexiones`,
+              details: {
+                version: flowData.version,
+                timestamp: flowData.timestamp,
+              },
+            });
+
+            resolve();
+          } catch (error) {
+            console.error("Error al procesar el archivo:", error);
+            setApiStatus({
+              state: "error",
+              message: `✗ Error al importar: ${error.message}`,
+            });
+            reject(error);
+          }
+        };
+
+        input.onerror = () => {
+          const error = new Error("Error al leer el archivo");
+          setApiStatus({
+            state: "error",
+            message: "✗ Error al leer el archivo",
+          });
+          reject(error);
+        };
+
+        // Trigger file selection
+        input.click();
+      } catch (error) {
+        console.error("Error al importar el flujo:", error);
+        setApiStatus({
+          state: "error",
+          message: `✗ Error al importar: ${error.message}`,
+        });
+        reject(error);
+      }
+    });
+  }, [saveToHistory]);
+
   // Exportar funciones y estados
   return {
     nodes,
@@ -740,6 +949,8 @@ export const useFlowManager = () => {
     onNodeClick,
 
     saveFlow,
+    exportFlow,
+    importFlow,
     resetNodeStates,
 
     undo,

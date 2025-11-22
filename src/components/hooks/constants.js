@@ -784,8 +784,8 @@ export const NODE_FIELD_CONFIGS = {
       },
       validation: (value, allParams) => {
         // Replicamos la lógica Joi: si logToFile es true, filePath es obligatorio.
-        if (allParams.logToFile === true && (!value || value.trim() === '')) {
-            return "La ruta del archivo es obligatoria si 'Registrar Errores a Archivo' está activo.";
+        if (allParams.logToFile === true && (!value || value.trim() === "")) {
+          return "La ruta del archivo es obligatoria si 'Registrar Errores a Archivo' está activo.";
         }
         return null;
       },
@@ -2213,13 +2213,6 @@ export const NODE_FIELD_CONFIGS = {
       label: "Visible (esperar a visible)",
       type: "checkbox",
       defaultValue: true,
-    },
-    {
-      name: "browserId",
-      label: "Browser ID",
-      type: "text",
-      placeholder: "ID del navegador (ej. 1)",
-      required: true,
     },
     {
       name: "endpoint",

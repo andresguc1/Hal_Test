@@ -215,15 +215,36 @@ export const get_set_content = (payload) => {
   return body;
 };
 
+/**
+ * Crea el payload para execute_js.
+ *
+ * ⚠️ ADVERTENCIA DE SEGURIDAD: Esta función permite la ejecución de código JavaScript arbitrario.
+ * El script se ejecuta en el contexto del navegador controlado por Playwright.
+ * Asegúrate de validar y sanitizar los scripts en el backend antes de ejecutarlos.
+ *
+ * @param {object} payload - Datos del formulario
+ * @param {string} payload.script - Código JavaScript a ejecutar
+ * @param {boolean} [payload.returnValue=false] - Si se debe retornar el valor de ejecución
+ * @param {string} [payload.variableName='resultado_js'] - Nombre de la variable para almacenar el resultado
+ * @param {string} [payload.args] - Argumentos serializados como JSON string
+ * @param {string} [payload.browserId] - ID del navegador
+ * @returns {object} Payload para el backend
+ */
 export const execute_js = (payload) => {
   const returnValue = asBoolean(payload?.returnValue, false);
+  const script = asString(payload?.script);
+
+  if (!script) {
+    throw new Error("El script de JavaScript es obligatorio.");
+  }
+
   return {
-    script: asString(payload?.script), // Aquí se normaliza el script (la función anónima como string)
+    script: script,
     returnValue: returnValue,
     variableName: returnValue
       ? asString(payload?.variableName, "resultado_js")
       : "",
-    args: asString(payload?.args), // Los argumentos serializados como string JSON
+    args: asString(payload?.args),
     browserId: asString(payload?.browserId),
   };
 };
@@ -305,30 +326,52 @@ export const scroll = (payload) => {
   };
 };
 
+/**
+ * Crea el payload para upload_file.
+ * Valida y sanitiza las rutas de archivos para prevenir path traversal.
+ *
+ * @param {object} payload - Datos del formulario
+ * @param {string} payload.selector - Selector del input file
+ * @param {string} payload.files - Rutas de archivos separadas por coma
+ * @param {number} [payload.timeout=30000] - Timeout en milisegundos
+ * @param {string} [payload.browserId] - ID del navegador
+ * @returns {object} Payload validado para el backend
+ * @throws {Error} Si las rutas de archivos son inválidas o peligrosas
+ */
 export const upload_file = (payload) => {
-  // Playwright espera un array de rutas (strings)
   const filesString = asString(payload?.files);
-  let filesArray = [];
 
-  if (filesString) {
-    // Intentamos dividir la cadena por comas y limpiamos espacios.
-    filesArray = filesString;
-    console
-      .log(filesArray)
-      .split(",")
-      .map((path) => path.trim())
-      .filter((path) => path.length > 0);
+  if (!filesString) {
+    throw new Error("Se requiere al menos una ruta de archivo.");
+  }
+
+  // Dividir la cadena por comas y limpiar espacios
+  const pathsArray = filesString
+    .split(",")
+    .map((path) => path.trim())
+    .filter((path) => path.length > 0);
+
+  if (pathsArray.length === 0) {
+    throw new Error("No se proporcionaron rutas de archivos válidas.");
+  }
+
+  // Validar cada ruta para prevenir path traversal
+  // Nota: La validación completa se hace en el backend, pero hacemos validación básica aquí
+  const dangerousPatterns = ["..", "\0", "\\"];
+  const invalidPaths = pathsArray.filter((path) =>
+    dangerousPatterns.some((pattern) => path.includes(pattern)),
+  );
+
+  if (invalidPaths.length > 0) {
+    throw new Error(
+      `Rutas de archivo inválidas o peligrosas detectadas: ${invalidPaths.join(", ")}`,
+    );
   }
 
   return {
     selector: asString(payload?.selector),
-    // Enviamos el array de rutas, aunque el schema Joi espera un string.
-    // **NOTA:** Aquí hay una discrepancia: Joi espera `Joi.string().trim().required()` para `files`.
-    // Si el BE realmente quiere el string, lo enviamos crudo; si el BE necesita el array
-    // (que es lo más probable para Playwright), el Joi schema del BE debería ser adaptado,
-    // o el BE debe manejar la división. **Mantendremos el string** para cumplir el schema Joi dado,
-    // y el controlador se encargará de dividirlo.
-    files: filesString,
+    // El backend espera un string con rutas separadas por coma
+    files: pathsArray.join(","),
     timeout: asNumber(payload?.timeout, 30000, 1),
     browserId: asString(payload?.browserId),
   };
@@ -347,9 +390,29 @@ export const wait_for_element = (payload) => {
   };
 };
 
+/**
+ * Crea el payload para wait_conditional.
+ *
+ * ⚠️ ADVERTENCIA: Esta función ejecuta scripts JavaScript en el navegador.
+ * El script debe retornar un valor booleano para determinar si la condición se cumple.
+ *
+ * @param {object} payload - Datos del formulario
+ * @param {string} payload.conditionScript - Script JS que retorna boolean
+ * @param {number} [payload.polling=500] - Intervalo de polling en ms
+ * @param {number} [payload.timeout=20000] - Timeout máximo en ms
+ * @param {string} [payload.browserId] - ID del navegador
+ * @returns {object} Payload para el backend
+ * @throws {Error} Si el script de condición está vacío
+ */
 export const wait_conditional = (payload) => {
+  const conditionScript = asString(payload?.conditionScript);
+
+  if (!conditionScript) {
+    throw new Error("El script de condición es obligatorio.");
+  }
+
   return {
-    conditionScript: asString(payload?.conditionScript),
+    conditionScript: conditionScript,
     polling: asNumber(payload?.polling, 500, 1),
     timeout: asNumber(payload?.timeout, 20000, 1),
     browserId: asString(payload?.browserId),

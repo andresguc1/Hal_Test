@@ -3,6 +3,7 @@ import React, { useState, useEffect } from "react";
 import { XCircle, Play, Trash2, AlertCircle } from "lucide-react";
 import "./styles/NodeConfigurationPanel.css";
 import { NODE_FIELD_CONFIGS } from "./hooks/constants";
+import { logger } from "../utils/logger";
 
 // ===============================================
 // CRÍTICO: Función de comparación personalizada para React.memo
@@ -144,8 +145,11 @@ function NodeConfigurationPanel({
         updateNodeConfiguration(action.nodeId, normalized);
         setIsDirty(false);
       } catch (err) {
-        console.error("updateNodeConfiguration falló:", err);
-        alert("No se pudo guardar: " + err.message);
+        logger.error("updateNodeConfiguration falló", err, "NodeConfigPanel");
+        // Don't expose internal error details to user
+        alert(
+          "No se pudo guardar la configuración. Por favor, verifica los datos e intenta nuevamente.",
+        );
       }
     } else {
       setIsDirty(false);
@@ -215,14 +219,14 @@ function NodeConfigurationPanel({
         payload,
       };
 
-      console.log("[EXECUTE] Prepared execPackage:", execPackage);
+      logger.debug("Prepared execPackage", execPackage, "NodeConfigPanel");
 
       // If onExecute exists, delegate entire execution to it and DO NOT fallback to local fetch.
       if (typeof onExecute === "function") {
         try {
-          console.log("[EXECUTE] Delegando a onExecute...");
+          logger.debug("Delegando a onExecute", null, "NodeConfigPanel");
           const success = await onExecute(execPackage);
-          console.log("[EXECUTE] onExecute returned:", success);
+          logger.debug("onExecute returned", { success }, "NodeConfigPanel");
           if (!success) {
             alert(
               "La ejecución del nodo falló. Revisa la consola o apiStatus.",
@@ -231,8 +235,10 @@ function NodeConfigurationPanel({
             setIsDirty(false);
           }
         } catch (err) {
-          console.error("[EXECUTE] onExecute lanzó error:", err);
-          alert("onExecute falló: " + (err?.message || String(err)));
+          logger.error("onExecute lanzó error", err, "NodeConfigPanel");
+          alert(
+            "Error al ejecutar la acción. Por favor, verifica la configuración.",
+          );
         }
         return; // important: avoid local fetch when onExecute exists
       }
@@ -271,8 +277,11 @@ function NodeConfigurationPanel({
         endpointByType[action.type] || `${BACKEND_API_BASE}/${action.type}`;
 
       const urlToCall = endpointFromForm || defaultEndpoint;
-      console.log("[EXECUTE] Performing fetch POST to:", urlToCall);
-      console.log("[EXECUTE] payload:", payload);
+      logger.debug(
+        "Performing fetch POST",
+        { url: urlToCall, payload },
+        "NodeConfigPanel",
+      );
 
       const resp = await fetch(urlToCall, {
         method: "POST",
@@ -288,11 +297,14 @@ function NodeConfigurationPanel({
         data = text;
       }
 
-      console.log(
-        "[EXECUTE] fetch response:",
-        resp.status,
-        resp.statusText,
-        data,
+      logger.debug(
+        "Fetch response",
+        {
+          status: resp.status,
+          statusText: resp.statusText,
+          data,
+        },
+        "NodeConfigPanel",
       );
 
       if (!resp.ok) {
@@ -304,8 +316,10 @@ function NodeConfigurationPanel({
 
       setIsDirty(false);
     } catch (err) {
-      console.error("Error ejecutando:", err);
-      alert("Error ejecutando: " + err.message);
+      logger.error("Error ejecutando acción", err, "NodeConfigPanel");
+      alert(
+        "Error al ejecutar la acción. Por favor, verifica la conexión con el servidor.",
+      );
     }
   };
 
@@ -336,7 +350,11 @@ function NodeConfigurationPanel({
       n.data?.type === "launch_browser" &&
       (n.data?.configuration?.instanceId || n.data?.configuration?.browserId),
   );
-  console.log(launchedBrowsers); // Esta línea ya no se ejecutará en cada arrastre
+  logger.debug(
+    "Launched browsers",
+    { count: launchedBrowsers.length },
+    "NodeConfigPanel",
+  );
 
   const renderField = (fieldConfig) => {
     const { name, label, type, placeholder, options, min, max } = fieldConfig;

@@ -4,10 +4,12 @@
 
 .config-panel {
   position: fixed;
-  top: var(--header-height, 800px);
+  top: 60px;
+  /* Fixed: was var(--header-height, 800px) */
   right: -340px;
   width: 320px;
-  height: calc(100vh - var(--header-height, 60px) - 50px);
+  height: calc(100vh - 60px - 50px);
+  /* Fixed: removed var() for consistency */
   background: var(--panel-bg, #111418);
   color: var(--cold-white, #e4e6eb);
   padding: 16px 20px;
@@ -17,7 +19,6 @@
   box-shadow: -2px 0 10px rgba(0, 0, 0, 0.35);
   transition: right 0.35s cubic-bezier(0.4, 0, 0.2, 1);
   z-index: 50;
-  /* 🔑 Aumentado de 25 a 50 para estar sobre controles */
   border-left: 1px solid rgba(255, 255, 255, 0.1);
 }
 
@@ -232,15 +233,17 @@
 
 .btn-run,
 .btn-cancel,
-/* <-- Añadido el selector aquí */
 .btn-delete {
-  flex: 1;
-  /* Esto es clave para que ocupen el mismo ancho */
+  flex: 0 1 auto;
+  /* Changed from flex: 1 to allow natural sizing */
+  min-width: 80px;
+  /* Minimum width for buttons */
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
-  padding: 10px 12px;
+  padding: 10px 14px;
+  /* Increased horizontal padding */
   border-radius: 8px;
   cursor: pointer;
   border: none;

@@ -1,6 +1,7 @@
 import React from "react";
 import { MiniMap } from "reactflow";
 import "./styles/StyledMiniMap.css";
+import { NODE_STATES, PROFESSIONAL_COLORS } from "./hooks/flowStyles";
 
 // Paleta de colores
 const colors = {
@@ -10,10 +11,18 @@ const colors = {
 };
 
 export default function StyledMiniMap() {
+  // Function to get node color based on state
+  const getNodeColor = (node) => {
+    const state = node.data?.state || NODE_STATES.DEFAULT;
+    const stateColors =
+      PROFESSIONAL_COLORS[state] || PROFESSIONAL_COLORS[NODE_STATES.DEFAULT];
+    return stateColors.background;
+  };
+
   return (
     <MiniMap
-      nodeStrokeColor={(n) => n.style?.backgroundColor || colors.starBlue}
-      nodeColor={(n) => n.style?.backgroundColor || colors.starBlue}
+      nodeStrokeColor={(n) => getNodeColor(n)}
+      nodeColor={(n) => getNodeColor(n)}
       nodeBorderRadius={6}
       nodeStrokeWidth={2}
       maskColor="rgba(11,12,16,0.8)"

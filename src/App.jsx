@@ -8,17 +8,33 @@ import NodeCreationPanel from "./components/NodeCreationPanel";
 import NodeConfigurationPanel from "./components/NodeConfigurationPanel";
 import AppFooter from "./components/AppFooter";
 import StyledMiniMap from "./components/StyledMiniMap";
+import { nodeTypes } from "./components/nodes";
+import StatusIndicator from "./components/StatusIndicator";
+import ProgressBar from "./components/ProgressBar";
 
 import { colors } from "./components/styles/colors";
 import { useFlowManager } from "./components/hooks/useFlowManager.js";
+import { useFlowShortcuts } from "./hooks/useKeyboardShortcuts";
+import { useToast } from "./hooks/useToast";
 
 // ========================================
 // COMPONENTE PRINCIPAL
 // ========================================
 
 export default function App() {
+  // Toast notifications
+  const toast = useToast();
+
   // Panel visibility state
   const [isCreationPanelVisible, setIsCreationPanelVisible] = useState(true);
+
+  // Execution state for progress bar
+  const [executionProgress, setExecutionProgress] = useState({
+    current: 0,
+    total: 0,
+    status: "",
+  });
+  const [isSaving, setIsSaving] = useState(false);
 
   // Custom hook para manejar el flujo
   const {
@@ -37,7 +53,11 @@ export default function App() {
     saveFlow,
     exportFlow,
     importFlow,
-    updateNodeConfiguration, // <-- agregado aquí
+    updateNodeConfiguration,
+    undo,
+    redo,
+    canUndo,
+    canRedo,
   } = useFlowManager();
 
   // Computed values
@@ -62,70 +82,98 @@ export default function App() {
   const handleExecuteFlow = useCallback(async () => {
     try {
       await executeFlow();
+      toast.success("✓ Flujo ejecutado correctamente");
     } catch (error) {
       console.error("Error ejecutando flujo:", error);
-      alert("Error al ejecutar el flujo: " + error.message);
+      toast.error("✗ Error al ejecutar el flujo: " + error.message);
     }
-  }, [executeFlow]);
+  }, [executeFlow, toast]);
 
   const handleSaveFlow = useCallback(() => {
     try {
-      const flowData = saveFlow();
-
-      // También preparar descarga
-      const blob = new Blob([JSON.stringify(flowData, null, 2)], {
-        type: "application/json",
-      });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `flow_${Date.now()}.json`;
-      a.click();
-      URL.revokeObjectURL(url);
-
-      alert("Flujo guardado exitosamente");
+      setIsSaving(true);
+      saveFlow();
+      toast.success("✓ Flujo guardado correctamente");
     } catch (error) {
       console.error("Error guardando flujo:", error);
-      alert("Error al guardar el flujo");
+      toast.error("✗ Error al guardar el flujo");
+    } finally {
+      setIsSaving(false);
     }
-  }, [saveFlow]);
+  }, [saveFlow, toast]);
 
   const handleExportFlow = useCallback(() => {
     try {
       exportFlow();
-      alert("Flujo exportado exitosamente");
+      toast.success("✓ Flujo exportado exitosamente");
     } catch (error) {
       console.error("Error exportando flujo:", error);
-      alert("Error al exportar el flujo");
+      toast.error("✗ Error al exportar el flujo");
     }
-  }, [exportFlow]);
+  }, [exportFlow, toast]);
 
   const handleImportFlow = useCallback(async () => {
     try {
       await importFlow();
-      alert("Flujo importado exitosamente");
+      toast.success("✓ Flujo importado exitosamente");
     } catch (error) {
       console.error("Error importando flujo:", error);
-      alert("Error al importar el flujo: " + error.message);
+      toast.error("✗ Error al importar el flujo: " + error.message);
     }
-  }, [importFlow]);
+  }, [importFlow, toast]);
 
   // ========================================
-  // MEMOIZACIÓN
+  // KEYBOARD SHORTCUTS
+  // ========================================
+  useFlowShortcuts({
+    onSave: handleSaveFlow,
+    onUndo: canUndo ? undo : undefined,
+    onRedo: canRedo ? redo : undefined,
+    onExecute: handleExecuteFlow,
+    onDelete: selectedAction
+      ? () => deleteNode(selectedAction.nodeId)
+      : undefined,
+    onDeselect: selectedAction ? closeConfiguration : undefined,
+  });
+
+  // ========================================
+  // MEMOIZACIÓN OPTIMIZADA
   // ========================================
 
+  // Props estáticas que no cambian
+  const staticFlowProps = useMemo(
+    () => ({
+      fitView: true,
+      minZoom: 0.1,
+      maxZoom: 2,
+      snapToGrid: true,
+      snapGrid: [15, 15],
+      style: { backgroundColor: colors.deepSpace },
+    }),
+    [],
+  );
+
+  // Props dinámicas que sí cambian
   const flowConfig = useMemo(
     () => ({
+      ...staticFlowProps,
       nodes,
       edges,
       onNodesChange,
       onEdgesChange,
       onConnect,
       onNodeClick,
-      fitView: true,
-      style: { backgroundColor: colors.deepSpace },
+      nodeTypes, // Custom node types for optimized rendering
     }),
-    [nodes, edges, onNodesChange, onEdgesChange, onConnect, onNodeClick],
+    [
+      staticFlowProps,
+      nodes,
+      edges,
+      onNodesChange,
+      onEdgesChange,
+      onConnect,
+      onNodeClick,
+    ],
   );
 
   // ========================================
@@ -134,6 +182,31 @@ export default function App() {
 
   return (
     <div className="app-container">
+      {/* Status Indicator */}
+      <div
+        style={{ position: "fixed", top: "70px", right: "20px", zIndex: 9998 }}
+      >
+        <StatusIndicator
+          isConnected={true}
+          isSaving={isSaving}
+          executionStats={
+            nodes.length > 0 ? { successful: 0, total: nodes.length } : null
+          }
+        />
+      </div>
+
+      {/* Progress Bar */}
+      {executionProgress.total > 0 && (
+        <ProgressBar
+          current={executionProgress.current}
+          total={executionProgress.total}
+          status={executionProgress.status}
+          onCancel={() =>
+            setExecutionProgress({ current: 0, total: 0, status: "" })
+          }
+        />
+      )}
+
       {/* Header */}
       <AppHeader toggleCreationPanel={toggleCreationPanel} />
 
