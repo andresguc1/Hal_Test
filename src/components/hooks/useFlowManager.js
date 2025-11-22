@@ -339,6 +339,7 @@ export const useFlowManager = () => {
         },
         data: {
           label, // Only show user-friendly label
+          type: typeKey,
           configuration: {},
           state: NODE_STATES.DEFAULT,
         },
