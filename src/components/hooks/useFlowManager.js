@@ -872,7 +872,9 @@ export const useFlowManager = () => {
         // Create file input element
         const input = document.createElement("input");
         input.type = "file";
-        input.accept = ".json,application/json";
+        // Support JSON and common test file extensions
+        input.accept =
+          ".json,application/json,.js,.ts,.spec.js,.spec.ts,.cy.js,.cy.ts";
 
         input.onchange = async (e) => {
           const file = e.target.files?.[0];
@@ -883,47 +885,195 @@ export const useFlowManager = () => {
 
           try {
             const text = await file.text();
-            const flowData = JSON.parse(text);
+            const isJson = file.name.endsWith(".json");
 
-            // Validate flow data structure
-            if (!flowData.nodes || !Array.isArray(flowData.nodes)) {
-              throw new Error(
-                "Formato de archivo inválido: falta el array de nodos",
-              );
+            if (isJson) {
+              // --- EXISTING JSON IMPORT LOGIC ---
+              const flowData = JSON.parse(text);
+
+              // Validate flow data structure
+              if (!flowData.nodes || !Array.isArray(flowData.nodes)) {
+                throw new Error(
+                  "Formato de archivo inválido: falta el array de nodos",
+                );
+              }
+
+              if (!flowData.edges || !Array.isArray(flowData.edges)) {
+                throw new Error(
+                  "Formato de archivo inválido: falta el array de edges",
+                );
+              }
+
+              // Save to history before importing
+              saveToHistory();
+
+              // Import the flow
+              setNodes(flowData.nodes);
+              setEdges(flowData.edges);
+
+              // Reset execution stats
+              setExecutionStats({
+                total: 0,
+                successful: 0,
+                failed: 0,
+                skipped: 0,
+                duration: 0,
+              });
+
+              setApiStatus({
+                state: "success",
+                message: `✓ Flujo importado: ${flowData.nodes.length} nodos, ${flowData.edges.length} conexiones`,
+                details: {
+                  version: flowData.version,
+                  timestamp: flowData.timestamp,
+                },
+              });
+
+              resolve();
+            } else {
+              // --- NEW INTELLIGENT IMPORT LOGIC ---
+              setApiStatus({
+                state: "loading",
+                message: "Analizando archivo de prueba...",
+              });
+
+              // 1. Analyze the file
+              const analyzeResponse = await fetch("/api/import/analyze", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ content: text, filename: file.name }),
+              });
+
+              if (!analyzeResponse.ok) {
+                throw new Error(
+                  `Error al analizar el archivo: ${analyzeResponse.statusText}`,
+                );
+              }
+
+              const analysis = await analyzeResponse.json();
+
+              if (!analysis.detected) {
+                throw new Error(
+                  "No se pudo detectar el framework de pruebas. Asegúrate de que el código sea válido.",
+                );
+              }
+
+              setApiStatus({
+                state: "loading",
+                message: `Framework detectado: ${analysis.framework}. Convirtiendo...`,
+              });
+
+              // 2. Convert to Flow
+              const convertResponse = await fetch("/api/import/convert", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  content: text,
+                  framework: analysis.framework,
+                }),
+              });
+
+              if (!convertResponse.ok) {
+                throw new Error(
+                  `Error al convertir el archivo: ${convertResponse.statusText}`,
+                );
+              }
+
+              const conversion = await convertResponse.json();
+
+              if (
+                !conversion.success ||
+                !conversion.flows ||
+                conversion.flows.length === 0
+              ) {
+                throw new Error(
+                  "No se pudieron generar flujos desde el archivo.",
+                );
+              }
+
+              // For now, we take the first flow found
+              const generatedFlow = conversion.flows[0].flow;
+
+              // Map generated actions to React Flow nodes
+              const newNodes = [];
+              const newEdges = [];
+              let lastNodeId = null;
+
+              // Helper to create nodes (simplified layout)
+              const startX = 100;
+              const startY = 100;
+              const gapY = 150;
+
+              generatedFlow.forEach((action, index) => {
+                const nodeId = generateNodeId();
+
+                // LÓGICA CORREGIDA: Usar el tipo de acción nativo
+                const nodeType = action.action;
+
+                // Map action to node configuration
+                // Usamos la acción completa como configuración base
+                let config = { ...action };
+                let label = action.action;
+
+                // Etiquetas amigables (opcional, pero útil para UI)
+                if (action.action === "open_url") {
+                  label = `Open ${action.url}`;
+                } else if (action.action === "type_text") {
+                  label = `Type "${action.text}"`;
+                } else if (action.action === "click") {
+                  label = `Click ${action.selector}`;
+                } else if (action.action === "launch_browser") {
+                  label = "Lanzar Navegador";
+                } else if (action.action === "close_browser") {
+                  label = "Cerrar Navegador";
+                }
+
+                // Crear nodo
+                const newNode = {
+                  id: nodeId,
+                  type: "custom",
+                  position: { x: startX, y: startY + index * gapY },
+                  data: {
+                    label,
+                    type: nodeType,
+                    configuration: config,
+                    state: NODE_STATES.DEFAULT,
+                  },
+                  style: getNodeStyle(NODE_STATES.DEFAULT),
+                  sourcePosition: "bottom",
+                  targetPosition: "top",
+                };
+
+                newNodes.push(newNode);
+
+                // Crear edge entre el nodo anterior y el actual (si existe)
+                if (lastNodeId) {
+                  newEdges.push({
+                    id: `e_${lastNodeId}_${nodeId}`,
+                    source: lastNodeId,
+                    target: nodeId,
+                    ...DEFAULT_EDGE_OPTIONS,
+                  });
+                }
+
+                lastNodeId = nodeId;
+              });
+
+              saveToHistory();
+              setNodes(newNodes);
+              setEdges(newEdges);
+
+              setApiStatus({
+                state: "success",
+                message: `✓ Importación inteligente completada: ${newNodes.length} pasos generados.`,
+                details: {
+                  framework: analysis.framework,
+                  flowName: conversion.flows[0].meta.name,
+                },
+              });
+
+              resolve();
             }
-
-            if (!flowData.edges || !Array.isArray(flowData.edges)) {
-              throw new Error(
-                "Formato de archivo inválido: falta el array de edges",
-              );
-            }
-
-            // Save to history before importing
-            saveToHistory();
-
-            // Import the flow
-            setNodes(flowData.nodes);
-            setEdges(flowData.edges);
-
-            // Reset execution stats
-            setExecutionStats({
-              total: 0,
-              successful: 0,
-              failed: 0,
-              skipped: 0,
-              duration: 0,
-            });
-
-            setApiStatus({
-              state: "success",
-              message: `✓ Flujo importado: ${flowData.nodes.length} nodos, ${flowData.edges.length} conexiones`,
-              details: {
-                version: flowData.version,
-                timestamp: flowData.timestamp,
-              },
-            });
-
-            resolve();
           } catch (error) {
             console.error("Error al procesar el archivo:", error);
             setApiStatus({
