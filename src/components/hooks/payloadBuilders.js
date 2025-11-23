@@ -467,7 +467,6 @@ export const wait_visible = (payload) => {
     selector: asString(payload?.selector),
     timeout: asNumber(payload?.timeout, 15000, 0),
     scrollIntoView: asBoolean(payload?.scrollIntoView, true),
-    browserId: asString(payload?.browserId),
   };
 };
 

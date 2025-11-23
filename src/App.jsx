@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo } from "react";
-import ReactFlow, { Controls, Background } from "reactflow";
+import ReactFlow, { Controls, Background, useReactFlow } from "reactflow";
 import "reactflow/dist/style.css";
 import "./components/styles/App.css";
 
@@ -16,6 +16,7 @@ import { colors } from "./components/styles/colors";
 import { useFlowManager } from "./components/hooks/useFlowManager.js";
 import { useFlowShortcuts } from "./hooks/useKeyboardShortcuts";
 import { useToast } from "./hooks/useToast";
+import { useFigmaInteraction } from "./hooks/useFigmaInteraction";
 
 // ========================================
 // COMPONENTE PRINCIPAL
@@ -24,6 +25,10 @@ import { useToast } from "./hooks/useToast";
 export default function App() {
   // Toast notifications
   const toast = useToast();
+
+  // React Flow hooks & Figma Interaction
+  const { figmaConfig, handlers } = useFigmaInteraction();
+  const { zoomIn, zoomOut, fitView } = handlers;
 
   // Panel visibility state
   const [isCreationPanelVisible, setIsCreationPanelVisible] = useState(true);
@@ -134,6 +139,9 @@ export default function App() {
       ? () => deleteNode(selectedAction.nodeId)
       : undefined,
     onDeselect: selectedAction ? closeConfiguration : undefined,
+    onZoomIn: () => zoomIn({ duration: 300 }),
+    onZoomOut: () => zoomOut({ duration: 300 }),
+    onFitView: () => fitView({ duration: 300 }),
   });
 
   // ========================================
@@ -141,16 +149,16 @@ export default function App() {
   // ========================================
 
   // Props estáticas que no cambian
+  // Props estáticas que no cambian
   const staticFlowProps = useMemo(
     () => ({
       fitView: true,
-      minZoom: 0.1,
-      maxZoom: 2,
       snapToGrid: true,
       snapGrid: [15, 15],
       style: { backgroundColor: colors.deepSpace },
+      ...figmaConfig, // Use Figma configuration
     }),
-    [],
+    [figmaConfig],
   );
 
   // Props dinámicas que sí cambian
@@ -163,6 +171,7 @@ export default function App() {
       onEdgesChange,
       onConnect,
       onNodeClick,
+      onPaneClick: closeConfiguration, // Deselect on background click
       nodeTypes, // Custom node types for optimized rendering
     }),
     [

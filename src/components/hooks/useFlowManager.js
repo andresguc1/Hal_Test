@@ -615,13 +615,13 @@ export const useFlowManager = () => {
   // ========================================
   const onConnect = useCallback(
     (connection) => {
-      console.log('🔗 onConnect triggered!', connection);
-      console.log('📊 Current nodes:', nodes.length);
-      console.log('📊 Current edges:', edges.length);
+      console.log("🔗 onConnect triggered!", connection);
+      console.log("📊 Current nodes:", nodes.length);
+      console.log("📊 Current edges:", edges.length);
 
       // OPTIMIZACIÓN: Validar ciclos antes de agregar edge
       if (wouldCreateCycle(connection, nodes, edges)) {
-        console.log('❌ Cycle detected, rejecting connection');
+        console.log("❌ Cycle detected, rejecting connection");
         logger.warn(
           "Cycle detected, connection rejected",
           connection,
@@ -634,7 +634,7 @@ export const useFlowManager = () => {
         return;
       }
 
-      console.log('✅ Adding edge...');
+      console.log("✅ Adding edge...");
       saveToHistory();
       setEdges((eds) =>
         addEdge(
@@ -646,7 +646,7 @@ export const useFlowManager = () => {
         ),
       );
 
-      console.log('✅ Edge added successfully');
+      console.log("✅ Edge added successfully");
       logger.debug("Edge added", connection, "useFlowManager");
     },
     [saveToHistory, nodes, edges],

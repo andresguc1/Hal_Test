@@ -507,13 +507,6 @@ export const NODE_FIELD_CONFIGS = {
       defaultValue: true,
     },
     {
-      name: "browserId",
-      label: "Browser ID",
-      type: "text",
-      placeholder: "ID del navegador (ej. 1)",
-      required: true,
-    },
-    {
       name: "endpoint",
       label: "Endpoint (opcional)",
       type: "text",

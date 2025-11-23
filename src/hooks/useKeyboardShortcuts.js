@@ -127,6 +127,16 @@ export function useFlowShortcuts(handlers = {}, enabled = true) {
     "ctrl+c": handlers.onCopy,
     "ctrl+v": handlers.onPaste,
     "ctrl+x": handlers.onCut,
+    // Zoom controls
+    "+": handlers.onZoomIn,
+    "=": handlers.onZoomIn,
+    "ctrl++": handlers.onZoomIn,
+    "ctrl+=": handlers.onZoomIn,
+    "-": handlers.onZoomOut,
+    _: handlers.onZoomOut,
+    "ctrl+-": handlers.onZoomOut,
+    "ctrl+_": handlers.onZoomOut,
+    "shift+1": handlers.onFitView,
   };
 
   // Filter out undefined handlers
