@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo } from "react";
-import ReactFlow, { Controls, Background, useReactFlow } from "reactflow";
+import ReactFlow, { Controls, Background } from "reactflow";
 import "reactflow/dist/style.css";
 import "./components/styles/App.css";
 
@@ -196,6 +196,7 @@ export default function App() {
       onEdgesChange,
       onConnect,
       onNodeClick,
+      closeConfiguration,
     ],
   );
 

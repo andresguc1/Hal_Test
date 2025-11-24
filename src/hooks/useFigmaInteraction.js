@@ -13,7 +13,7 @@ import { useReactFlow, SelectionMode } from "reactflow";
  * - Zoom to cursor
  */
 export function useFigmaInteraction() {
-  const { zoomIn, zoomOut, fitView, setViewport, getViewport } = useReactFlow();
+  const { zoomIn, zoomOut, fitView } = useReactFlow();
   const [isSpacePressed, setIsSpacePressed] = useState(false);
   const [isCtrlPressed, setIsCtrlPressed] = useState(false);
 

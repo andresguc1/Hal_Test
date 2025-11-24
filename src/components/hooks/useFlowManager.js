@@ -808,7 +808,7 @@ export const useFlowManager = () => {
 
       return { success: allSuccess, stats };
     },
-    [nodes, edges, topologicalSort, executionStats],
+    [nodes, edges, topologicalSort, executionStats, executeStep, resetNodeStates],
   );
 
   // ========================================
