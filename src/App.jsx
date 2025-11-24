@@ -11,6 +11,7 @@ import StyledMiniMap from "./components/StyledMiniMap";
 import { nodeTypes } from "./components/nodes";
 import StatusIndicator from "./components/StatusIndicator";
 import ProgressBar from "./components/ProgressBar";
+import ImportDialog from "./components/ImportDialog";
 
 import { colors } from "./components/styles/colors";
 import { useFlowManager } from "./components/hooks/useFlowManager.js";
@@ -32,6 +33,7 @@ export default function App() {
 
   // Panel visibility state
   const [isCreationPanelVisible, setIsCreationPanelVisible] = useState(true);
+  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
 
   // Execution state for progress bar
   const [executionProgress, setExecutionProgress] = useState({
@@ -117,15 +119,27 @@ export default function App() {
     }
   }, [exportFlow, toast]);
 
-  const handleImportFlow = useCallback(async () => {
-    try {
-      await importFlow();
-      toast.success("✓ Flujo importado exitosamente");
-    } catch (error) {
-      console.error("Error importando flujo:", error);
-      toast.error("✗ Error al importar el flujo: " + error.message);
-    }
-  }, [importFlow, toast]);
+  const handleImportFlow = useCallback(() => {
+    setIsImportDialogOpen(true);
+  }, []);
+
+  const handleImportDialogClose = useCallback(() => {
+    setIsImportDialogOpen(false);
+  }, []);
+
+  const handleImport = useCallback(
+    async (options) => {
+      try {
+        await importFlow(options);
+        toast.success("✓ Flujo importado exitosamente");
+      } catch (error) {
+        console.error("Error importando flujo:", error);
+        toast.error("✗ Error al importar el flujo: " + error.message);
+        throw error; // Re-throw to let ImportDialog handle it
+      }
+    },
+    [importFlow, toast],
+  );
 
   // ========================================
   // KEYBOARD SHORTCUTS
@@ -261,6 +275,13 @@ export default function App() {
         onSave={handleSaveFlow}
         onExport={handleExportFlow}
         onImport={handleImportFlow}
+      />
+
+      {/* Import Dialog */}
+      <ImportDialog
+        isOpen={isImportDialogOpen}
+        onClose={handleImportDialogClose}
+        onImport={handleImport}
       />
     </div>
   );

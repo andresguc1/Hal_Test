@@ -863,248 +863,269 @@ export const useFlowManager = () => {
   }, [nodes, edges, getViewport, executionStats]);
 
   /**
-   * Imports a flow from a JSON file
+   * Enhanced import function supporting multiple modes
+   * @param {Object} options - Import options
+   * @param {string} options.mode - Import mode: 'file', 'directory', 'directory-pom'
+   * @param {string} options.content - File content (for file mode)
+   * @param {string} options.filename - Filename (for file mode)
+   * @param {string} options.framework - Detected framework (optional)
+   * @param {Object} options.result - Import result from backend (for directory modes)
    * @returns {Promise<void>}
    */
-  const importFlow = useCallback(() => {
-    return new Promise((resolve, reject) => {
+  const importFlow = useCallback(
+    async (options = {}) => {
+      const { mode = "file", content, filename, framework, result } = options;
+
       try {
-        // Create file input element
-        const input = document.createElement("input");
-        input.type = "file";
-        // Support JSON and common test file extensions
-        input.accept =
-          ".json,application/json,.js,.ts,.spec.js,.spec.ts,.cy.js,.cy.ts";
+        // Handle JSON flow import (legacy)
+        if (filename?.endsWith(".json")) {
+          const flowData = JSON.parse(content);
 
-        input.onchange = async (e) => {
-          const file = e.target.files?.[0];
-          if (!file) {
-            reject(new Error("No se seleccionó ningún archivo"));
-            return;
+          // Validate flow data structure
+          if (!flowData.nodes || !Array.isArray(flowData.nodes)) {
+            throw new Error(
+              "Formato de archivo inválido: falta el array de nodos",
+            );
           }
 
-          try {
-            const text = await file.text();
-            const isJson = file.name.endsWith(".json");
-
-            if (isJson) {
-              // --- EXISTING JSON IMPORT LOGIC ---
-              const flowData = JSON.parse(text);
-
-              // Validate flow data structure
-              if (!flowData.nodes || !Array.isArray(flowData.nodes)) {
-                throw new Error(
-                  "Formato de archivo inválido: falta el array de nodos",
-                );
-              }
-
-              if (!flowData.edges || !Array.isArray(flowData.edges)) {
-                throw new Error(
-                  "Formato de archivo inválido: falta el array de edges",
-                );
-              }
-
-              // Save to history before importing
-              saveToHistory();
-
-              // Import the flow
-              setNodes(flowData.nodes);
-              setEdges(flowData.edges);
-
-              // Reset execution stats
-              setExecutionStats({
-                total: 0,
-                successful: 0,
-                failed: 0,
-                skipped: 0,
-                duration: 0,
-              });
-
-              setApiStatus({
-                state: "success",
-                message: `✓ Flujo importado: ${flowData.nodes.length} nodos, ${flowData.edges.length} conexiones`,
-                details: {
-                  version: flowData.version,
-                  timestamp: flowData.timestamp,
-                },
-              });
-
-              resolve();
-            } else {
-              // --- NEW INTELLIGENT IMPORT LOGIC ---
-              setApiStatus({
-                state: "loading",
-                message: "Analizando archivo de prueba...",
-              });
-
-              // 1. Analyze the file
-              const analyzeResponse = await fetch("/api/import/analyze", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ content: text, filename: file.name }),
-              });
-
-              if (!analyzeResponse.ok) {
-                throw new Error(
-                  `Error al analizar el archivo: ${analyzeResponse.statusText}`,
-                );
-              }
-
-              const analysis = await analyzeResponse.json();
-
-              if (!analysis.detected) {
-                throw new Error(
-                  "No se pudo detectar el framework de pruebas. Asegúrate de que el código sea válido.",
-                );
-              }
-
-              setApiStatus({
-                state: "loading",
-                message: `Framework detectado: ${analysis.framework}. Convirtiendo...`,
-              });
-
-              // 2. Convert to Flow
-              const convertResponse = await fetch("/api/import/convert", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  content: text,
-                  framework: analysis.framework,
-                }),
-              });
-
-              if (!convertResponse.ok) {
-                throw new Error(
-                  `Error al convertir el archivo: ${convertResponse.statusText}`,
-                );
-              }
-
-              const conversion = await convertResponse.json();
-
-              if (
-                !conversion.success ||
-                !conversion.flows ||
-                conversion.flows.length === 0
-              ) {
-                throw new Error(
-                  "No se pudieron generar flujos desde el archivo.",
-                );
-              }
-
-              // For now, we take the first flow found
-              const generatedFlow = conversion.flows[0].flow;
-
-              // Map generated actions to React Flow nodes
-              const newNodes = [];
-              const newEdges = [];
-              let lastNodeId = null;
-
-              // Helper to create nodes (simplified layout)
-              const startX = 100;
-              const startY = 100;
-              const gapY = 150;
-
-              generatedFlow.forEach((action, index) => {
-                const nodeId = generateNodeId();
-
-                // LÓGICA CORREGIDA: Usar el tipo de acción nativo
-                const nodeType = action.action;
-
-                // Map action to node configuration
-                // Usamos la acción completa como configuración base
-                let config = { ...action };
-                let label = action.action;
-
-                // Etiquetas amigables (opcional, pero útil para UI)
-                if (action.action === "open_url") {
-                  label = `Open ${action.url}`;
-                } else if (action.action === "type_text") {
-                  label = `Type "${action.text}"`;
-                } else if (action.action === "click") {
-                  label = `Click ${action.selector}`;
-                } else if (action.action === "launch_browser") {
-                  label = "Lanzar Navegador";
-                } else if (action.action === "close_browser") {
-                  label = "Cerrar Navegador";
-                }
-
-                // Crear nodo
-                const newNode = {
-                  id: nodeId,
-                  type: "custom",
-                  position: { x: startX, y: startY + index * gapY },
-                  data: {
-                    label,
-                    type: nodeType,
-                    configuration: config,
-                    state: NODE_STATES.DEFAULT,
-                  },
-                  style: getNodeStyle(NODE_STATES.DEFAULT),
-                  sourcePosition: "bottom",
-                  targetPosition: "top",
-                };
-
-                newNodes.push(newNode);
-
-                // Crear edge entre el nodo anterior y el actual (si existe)
-                if (lastNodeId) {
-                  newEdges.push({
-                    id: `e_${lastNodeId}_${nodeId}`,
-                    source: lastNodeId,
-                    target: nodeId,
-                    ...DEFAULT_EDGE_OPTIONS,
-                  });
-                }
-
-                lastNodeId = nodeId;
-              });
-
-              saveToHistory();
-              setNodes(newNodes);
-              setEdges(newEdges);
-
-              setApiStatus({
-                state: "success",
-                message: `✓ Importación inteligente completada: ${newNodes.length} pasos generados.`,
-                details: {
-                  framework: analysis.framework,
-                  flowName: conversion.flows[0].meta.name,
-                },
-              });
-
-              resolve();
-            }
-          } catch (error) {
-            console.error("Error al procesar el archivo:", error);
-            setApiStatus({
-              state: "error",
-              message: `✗ Error al importar: ${error.message}`,
-            });
-            reject(error);
+          if (!flowData.edges || !Array.isArray(flowData.edges)) {
+            throw new Error(
+              "Formato de archivo inválido: falta el array de edges",
+            );
           }
-        };
 
-        input.onerror = () => {
-          const error = new Error("Error al leer el archivo");
-          setApiStatus({
-            state: "error",
-            message: "✗ Error al leer el archivo",
+          saveToHistory();
+          setNodes(flowData.nodes);
+          setEdges(flowData.edges);
+
+          setExecutionStats({
+            total: 0,
+            successful: 0,
+            failed: 0,
+            skipped: 0,
+            duration: 0,
           });
-          reject(error);
-        };
 
-        // Trigger file selection
-        input.click();
+          setApiStatus({
+            state: "success",
+            message: `✓ Flujo importado: ${flowData.nodes.length} nodos, ${flowData.edges.length} conexiones`,
+            details: {
+              version: flowData.version,
+              timestamp: flowData.timestamp,
+            },
+          });
+
+          return;
+        }
+
+        // Handle directory import result
+        if (mode === "directory" || mode === "directory-pom") {
+          if (!result || !result.flows || result.flows.length === 0) {
+            throw new Error("No se generaron flujos desde el directorio");
+          }
+
+          // For now, merge all flows into a single canvas
+          // In the future, we could create a flow selector UI
+          const allNodes = [];
+          const allEdges = [];
+          let currentY = 100;
+          const flowGap = 300;
+
+          result.flows.forEach((flowData, flowIndex) => {
+            const flow = flowData.flow;
+            const startX = 100 + (flowIndex % 3) * 400; // Arrange flows in columns
+            const startY = currentY + Math.floor(flowIndex / 3) * flowGap;
+            let lastNodeId = null;
+
+            flow.forEach((action, actionIndex) => {
+              const nodeId = generateNodeId();
+              const nodeType = action.action;
+              const config = { ...action };
+              const label = createExecutedLabel({
+                type: nodeType,
+                payload: config,
+              });
+
+              const newNode = {
+                id: nodeId,
+                type: "custom",
+                position: { x: startX, y: startY + actionIndex * 150 },
+                data: {
+                  label,
+                  type: nodeType,
+                  configuration: config,
+                  state: NODE_STATES.DEFAULT,
+                },
+                style: getNodeStyle(NODE_STATES.DEFAULT),
+                sourcePosition: "bottom",
+                targetPosition: "top",
+              };
+
+              allNodes.push(newNode);
+
+              if (lastNodeId) {
+                allEdges.push({
+                  id: `e_${lastNodeId}_${nodeId}`,
+                  source: lastNodeId,
+                  target: nodeId,
+                  ...DEFAULT_EDGE_OPTIONS,
+                });
+              }
+
+              lastNodeId = nodeId;
+            });
+          });
+
+          saveToHistory();
+          setNodes(allNodes);
+          setEdges(allEdges);
+
+          setApiStatus({
+            state: "success",
+            message: `✓ ${result.flows.length} flujos importados (${allNodes.length} nodos totales)`,
+            details: {
+              mode,
+              stats: result.stats,
+            },
+          });
+
+          return;
+        }
+
+        // Handle single file import with conversion
+        if (mode === "file" && content) {
+          setApiStatus({
+            state: "loading",
+            message: "Analizando archivo de prueba...",
+          });
+
+          // 1. Analyze the file (if framework not provided)
+          let detectedFramework = framework;
+          if (!detectedFramework) {
+            const analyzeResponse = await fetch("/api/import/analyze", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ content, filename }),
+            });
+
+            if (!analyzeResponse.ok) {
+              throw new Error(
+                `Error al analizar el archivo: ${analyzeResponse.statusText}`,
+              );
+            }
+
+            const analysis = await analyzeResponse.json();
+
+            if (!analysis.detected) {
+              throw new Error("No se pudo detectar el framework de pruebas.");
+            }
+
+            detectedFramework = analysis.framework;
+          }
+
+          setApiStatus({
+            state: "loading",
+            message: `Framework detectado: ${detectedFramework}. Convirtiendo...`,
+          });
+
+          // 2. Convert to Flow
+          const convertResponse = await fetch("/api/import/convert", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              content,
+              framework: detectedFramework,
+            }),
+          });
+
+          if (!convertResponse.ok) {
+            throw new Error(
+              `Error al convertir el archivo: ${convertResponse.statusText}`,
+            );
+          }
+
+          const conversion = await convertResponse.json();
+
+          if (
+            !conversion.success ||
+            !conversion.flows ||
+            conversion.flows.length === 0
+          ) {
+            throw new Error("No se pudieron generar flujos desde el archivo.");
+          }
+
+          // Take the first flow
+          const generatedFlow = conversion.flows[0].flow;
+          const newNodes = [];
+          const newEdges = [];
+          let lastNodeId = null;
+
+          const startX = 100;
+          const startY = 100;
+          const gapY = 150;
+
+          generatedFlow.forEach((action, index) => {
+            const nodeId = generateNodeId();
+            const nodeType = action.action;
+            const config = { ...action };
+            const label = createExecutedLabel({
+              type: nodeType,
+              payload: config,
+            });
+
+            const newNode = {
+              id: nodeId,
+              type: "custom",
+              position: { x: startX, y: startY + index * gapY },
+              data: {
+                label,
+                type: nodeType,
+                configuration: config,
+                state: NODE_STATES.DEFAULT,
+              },
+              style: getNodeStyle(NODE_STATES.DEFAULT),
+              sourcePosition: "bottom",
+              targetPosition: "top",
+            };
+
+            newNodes.push(newNode);
+
+            if (lastNodeId) {
+              newEdges.push({
+                id: `e_${lastNodeId}_${nodeId}`,
+                source: lastNodeId,
+                target: nodeId,
+                ...DEFAULT_EDGE_OPTIONS,
+              });
+            }
+
+            lastNodeId = nodeId;
+          });
+
+          saveToHistory();
+          setNodes(newNodes);
+          setEdges(newEdges);
+
+          setApiStatus({
+            state: "success",
+            message: `✓ Importación completada: ${newNodes.length} pasos generados`,
+            details: {
+              framework: detectedFramework,
+              flowName: conversion.flows[0].meta?.name || filename,
+            },
+          });
+        }
       } catch (error) {
-        console.error("Error al importar el flujo:", error);
+        console.error("Error al importar:", error);
         setApiStatus({
           state: "error",
           message: `✗ Error al importar: ${error.message}`,
         });
-        reject(error);
+        throw error;
       }
-    });
-  }, [saveToHistory]);
+    },
+    [saveToHistory],
+  );
 
   // Exportar funciones y estados
   return {

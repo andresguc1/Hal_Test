@@ -51,15 +51,57 @@ The backend exposes RESTful endpoints for browser automation, action execution, 
 - Real-time progress tracking for each action
 - Error handling, logging, and execution reports
 
-### 📁 **Import / Export**
+### 📁 **Advanced Import / Export System**
+
+#### 🔄 Three Import Modes
+
+1. **📄 File Import**
+   - Import individual test files
+   - Automatic framework detection
+   - Supports 12+ testing frameworks
+   - Real-time conversion to Hal_Test flows
+
+2. **📁 Directory Import**
+   - Recursive directory scanning
+   - Batch import multiple test files
+   - Automatic organization in canvas
+   - Smart filtering (ignores node_modules, .git, etc.)
+
+3. **📁+ Directory + POM**
+   - All directory import features
+   - Page Object Model resolution
+   - Project indexing for class/function references
+   - Ideal for enterprise projects
+
+#### 🎯 Supported Frameworks
+
+- **Playwright** (.js, .ts)
+- **Cypress** (.cy.js, .cy.ts)
+- **Selenium** (JavaScript, Python, Java, C#)
+- **TestCafe** (.js, .ts)
+- **Puppeteer** (.js, .ts)
+- **WebdriverIO** (.js, .ts)
+- **Nightwatch** (.js, .ts)
+- **Katalon** (.groovy)
+- **TestRigor** (.txt)
+
+#### 📤 Export Features
 
 - Export flows to JSON for reuse or sharing
-- Import previously saved flows at any time
+- Include metadata and execution stats
+- Version control friendly format
+
+**📚 Learn More:**
+
+- [Import System Documentation](./IMPORT_SYSTEM.md)
+- [Code Examples](./IMPORT_EXAMPLES.md)
+- [Changes Summary](./CHANGES_SUMMARY.md)
 
 ### 🗺️ **Navigation & Tools**
 
 - Built-in minimap for large flows
 - Collapsible side panels for a clean workspace
+- Figma-like navigation and zoom controls
 - Optional dark mode (if added later)
 
 ### 🔌 **Full Integration With HalTest Backend**
