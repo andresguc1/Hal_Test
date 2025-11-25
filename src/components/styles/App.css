@@ -222,6 +222,90 @@ html,
 .react-flow__edge {
   z-index: 4;
   /* Por debajo de nodos */
+  cursor: pointer;
+  /* Indicar que es clickeable */
+  transition: all 0.2s ease-in-out;
+}
+
+/* Edge seleccionado - más visible */
+.react-flow__edge.selected {
+  z-index: 5;
+  /* Por encima de otros edges */
+  animation: pulse-edge 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse-edge {
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.react-flow__edge.selected path {
+  stroke: var(--hal-orange) !important;
+  /* Hal Orange cuando está seleccionado */
+  stroke-width: 3px !important;
+  /* Más grueso */
+  filter: drop-shadow(0 0 4px var(--hal-orange));
+}
+
+.react-flow__edge.selected .react-flow__edge-path {
+  stroke: var(--hal-orange) !important;
+  stroke-width: 3px !important;
+}
+
+/* Hover en edges */
+.react-flow__edge:hover path {
+  stroke: var(--star-blue) !important;
+  /* Star Blue en hover */
+  stroke-width: 2.5px !important;
+  filter: drop-shadow(0 0 3px var(--star-blue));
+  transition: all 0.2s ease-in-out;
+}
+
+/* Labels de edges - ELIMINADOS VISUALMENTE SI QUEDAN RESIDUOS */
+.react-flow__edge-text {
+  display: none;
+}
+
+/* Botón de eliminación de edge */
+.react-flow__edge-remove {
+  fill: var(--hal-red);
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+}
+
+.react-flow__edge-remove:hover {
+  fill: #ff4757;
+  transform: scale(1.2);
+}
+
+/* Animación al crear edge */
+@keyframes edge-appear {
+  from {
+    opacity: 0;
+    stroke-dashoffset: 1000;
+  }
+
+  to {
+    opacity: 1;
+    stroke-dashoffset: 0;
+  }
+}
+
+.react-flow__edge.animated path {
+  stroke-dasharray: 5;
+  animation: edge-flow 1s linear infinite;
+}
+
+@keyframes edge-flow {
+  to {
+    stroke-dashoffset: -10;
+  }
 }
 
 /* Botones secundarios */

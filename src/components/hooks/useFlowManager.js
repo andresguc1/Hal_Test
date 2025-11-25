@@ -52,12 +52,20 @@ const createExecutedLabel = (action) => {
 const DEFAULT_EDGE_OPTIONS = {
   animated: true,
   style: {
-    stroke: "#00D9FF", // Bright cyan for better visibility
-    strokeWidth: 2.5, // Slightly thicker
+    stroke: "#B0B0B0", // metallicSilver
+    strokeWidth: 2,
   },
   markerEnd: {
     type: "arrowclosed",
-    color: "#00D9FF", // Bright cyan arrow
+    color: "#B0B0B0", // metallicSilver
+  },
+  // Hacer los edges seleccionables y eliminables
+  focusable: true,
+  deletable: true,
+  // Estilos cuando el edge está seleccionado
+  selectedStyle: {
+    stroke: "#FF8C32", // halOrange
+    strokeWidth: 3,
   },
 };
 
@@ -619,7 +627,38 @@ export const useFlowManager = () => {
       console.log("📊 Current nodes:", nodes.length);
       console.log("📊 Current edges:", edges.length);
 
-      // OPTIMIZACIÓN: Validar ciclos antes de agregar edge
+      // VALIDACIÓN 1: Prevenir conexiones duplicadas
+      const isDuplicate = edges.some(
+        (edge) =>
+          edge.source === connection.source &&
+          edge.target === connection.target,
+      );
+
+      if (isDuplicate) {
+        console.log("❌ Duplicate connection detected");
+        logger.warn(
+          "Duplicate connection rejected",
+          connection,
+          "useFlowManager",
+        );
+        setApiStatus({
+          state: "warning",
+          message: "⚠️ Ya existe una conexión entre estos nodos",
+        });
+        return;
+      }
+
+      // VALIDACIÓN 2: Prevenir auto-conexiones
+      if (connection.source === connection.target) {
+        console.log("❌ Self-connection detected");
+        setApiStatus({
+          state: "warning",
+          message: "⚠️ No se puede conectar un nodo consigo mismo",
+        });
+        return;
+      }
+
+      // VALIDACIÓN 3: Validar ciclos antes de agregar edge
       if (wouldCreateCycle(connection, nodes, edges)) {
         console.log("❌ Cycle detected, rejecting connection");
         logger.warn(
@@ -636,10 +675,15 @@ export const useFlowManager = () => {
 
       console.log("✅ Adding edge...");
       saveToHistory();
+
+      // Agregar edge con ID único y label
+      const edgeId = `edge-${connection.source}-${connection.target}`;
+
       setEdges((eds) =>
         addEdge(
           {
             ...connection,
+            id: edgeId,
             ...DEFAULT_EDGE_OPTIONS,
           },
           eds,
@@ -648,6 +692,11 @@ export const useFlowManager = () => {
 
       console.log("✅ Edge added successfully");
       logger.debug("Edge added", connection, "useFlowManager");
+
+      setApiStatus({
+        state: "success",
+        message: "✓ Conexión creada exitosamente",
+      });
     },
     [saveToHistory, nodes, edges],
   );
@@ -658,8 +707,15 @@ export const useFlowManager = () => {
   );
 
   const onEdgesChange = useCallback(
-    (changes) => setEdges((eds) => applyEdgeChanges(changes, eds)),
-    [],
+    (changes) => {
+      // Guardar historial si se está eliminando un edge
+      const hasRemove = changes.some((change) => change.type === "remove");
+      if (hasRemove) {
+        saveToHistory();
+      }
+      setEdges((eds) => applyEdgeChanges(changes, eds));
+    },
+    [saveToHistory],
   );
 
   const onNodeClick = useCallback((event, node) => {
@@ -808,7 +864,14 @@ export const useFlowManager = () => {
 
       return { success: allSuccess, stats };
     },
-    [nodes, edges, topologicalSort, executionStats, executeStep, resetNodeStates],
+    [
+      nodes,
+      edges,
+      topologicalSort,
+      executionStats,
+      executeStep,
+      resetNodeStates,
+    ],
   );
 
   // ========================================

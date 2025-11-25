@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo } from "react";
-import ReactFlow, { Controls, Background } from "reactflow";
+import ReactFlow, { Controls, Background, useReactFlow } from "reactflow";
 import "reactflow/dist/style.css";
 import "./components/styles/App.css";
 
@@ -32,6 +32,9 @@ export default function App() {
   const { figmaConfig, handlers } = useFigmaInteraction();
   const { zoomIn, zoomOut, fitView } = handlers;
 
+  // Hook de React Flow para acceder a funciones de eliminación
+  const { getNodes, getEdges, deleteElements } = useReactFlow();
+
   // Panel visibility state
   const [isCreationPanelVisible, setIsCreationPanelVisible] = useState(true);
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
@@ -58,6 +61,7 @@ export default function App() {
     deleteNode,
     executeStep,
     setSelectedAction,
+    setNodes,
     executeFlow,
     saveFlow,
     importFlow,
@@ -141,6 +145,87 @@ export default function App() {
   );
 
   // ========================================
+  // CALLBACKS - Eliminación de elementos
+  // ========================================
+  const handleDeleteSelected = useCallback(() => {
+    const allNodes = getNodes();
+    const allEdges = getEdges();
+
+    // Encontrar nodos y edges seleccionados
+    const selectedNodes = allNodes.filter((node) => node.selected);
+    const selectedEdges = allEdges.filter((edge) => edge.selected);
+
+    // PRIORIDAD 1: Si hay edges seleccionados, eliminarlos (y nodos seleccionados también)
+    // Esto evita que se elimine el "nodo activo" del panel si el usuario en realidad quería borrar un edge
+    if (selectedEdges.length > 0 || selectedNodes.length > 0) {
+      const elementsToDelete = {
+        nodes: selectedNodes,
+        edges: selectedEdges,
+      };
+      deleteElements(elementsToDelete);
+
+      // Si el nodo que se estaba configurando fue eliminado, cerrar el panel
+      if (
+        selectedAction &&
+        selectedNodes.some((n) => n.id === selectedAction.nodeId)
+      ) {
+        closeConfiguration();
+      }
+      return;
+    }
+
+    // PRIORIDAD 2: Si NO hay nada seleccionado en el canvas, pero hay un panel abierto,
+    // entonces (y solo entonces) eliminamos el nodo activo.
+    if (selectedAction) {
+      // Opcional: Podríamos pedir confirmación aquí o simplemente borrarlo
+      deleteNode(selectedAction.nodeId);
+      return;
+    }
+  }, [
+    selectedAction,
+    deleteNode,
+    getNodes,
+    getEdges,
+    deleteElements,
+    closeConfiguration,
+  ]);
+
+  // ========================================
+  // CALLBACKS - Duplicar nodos
+  // ========================================
+  const handleDuplicateNodes = useCallback(() => {
+    const allNodes = getNodes();
+    const selectedNodes = allNodes.filter((node) => node.selected);
+
+    if (selectedNodes.length === 0) return;
+
+    const newNodes = selectedNodes.map((node) => ({
+      ...node,
+      id: `node_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      position: {
+        x: node.position.x + 50,
+        y: node.position.y + 50,
+      },
+      selected: false,
+      data: {
+        ...node.data,
+        label: `${node.data.label} (copia)`,
+      },
+    }));
+
+    setNodes((nds) => [...nds, ...newNodes]);
+    toast.success(`✓ ${newNodes.length} nodo(s) duplicado(s)`);
+  }, [getNodes, setNodes, toast]);
+
+  // ========================================
+  // CALLBACKS - Seleccionar todos
+  // ========================================
+  const handleSelectAll = useCallback(() => {
+    const allNodes = getNodes();
+    setNodes(allNodes.map((node) => ({ ...node, selected: true })));
+  }, [getNodes, setNodes]);
+
+  // ========================================
   // KEYBOARD SHORTCUTS
   // ========================================
   useFlowShortcuts({
@@ -148,9 +233,9 @@ export default function App() {
     onUndo: canUndo ? undo : undefined,
     onRedo: canRedo ? redo : undefined,
     onExecute: handleExecuteFlow,
-    onDelete: selectedAction
-      ? () => deleteNode(selectedAction.nodeId)
-      : undefined,
+    onDelete: handleDeleteSelected,
+    onDuplicate: handleDuplicateNodes,
+    onSelectAll: handleSelectAll,
     onDeselect: selectedAction ? closeConfiguration : undefined,
     onZoomIn: () => zoomIn({ duration: 300 }),
     onZoomOut: () => zoomOut({ duration: 300 }),
@@ -162,13 +247,26 @@ export default function App() {
   // ========================================
 
   // Props estáticas que no cambian
-  // Props estáticas que no cambian
   const staticFlowProps = useMemo(
     () => ({
       fitView: true,
       snapToGrid: true,
       snapGrid: [15, 15],
       style: { backgroundColor: colors.deepSpace },
+      // Habilitar selección y eliminación de edges
+      edgesFocusable: true,
+      edgesUpdatable: true,
+      elementsSelectable: true,
+      // Mejorar selección múltiple
+      multiSelectionKeyCode: "Shift", // Shift para selección múltiple
+      selectionKeyCode: "Shift", // Shift para selección de área
+      deleteKeyCode: "Delete", // Tecla Delete para eliminar
+      // Mejorar interacción
+      selectNodesOnDrag: false, // No seleccionar al arrastrar
+      panOnDrag: [1, 2], // Pan con click medio o derecho
+      zoomOnScroll: true, // Zoom con scroll
+      zoomOnPinch: true, // Zoom con pinch en trackpad
+      zoomOnDoubleClick: false, // Deshabilitar zoom con doble click
       ...figmaConfig, // Use Figma configuration
     }),
     [figmaConfig],
