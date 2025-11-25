@@ -174,21 +174,9 @@ export default function App() {
       return;
     }
 
-    // PRIORIDAD 2: Si NO hay nada seleccionado en el canvas, pero hay un panel abierto,
-    // entonces (y solo entonces) eliminamos el nodo activo.
-    if (selectedAction) {
-      // Opcional: Podríamos pedir confirmación aquí o simplemente borrarlo
-      deleteNode(selectedAction.nodeId);
-      return;
-    }
-  }, [
-    selectedAction,
-    deleteNode,
-    getNodes,
-    getEdges,
-    deleteElements,
-    closeConfiguration,
-  ]);
+    // PRIORIDAD 2: REMOVED - Fallback to delete active node was dangerous.
+    // Now we ONLY delete explicitly selected elements.
+  }, [selectedAction, getNodes, getEdges, deleteElements, closeConfiguration]);
 
   // ========================================
   // CALLBACKS - Duplicar nodos
@@ -264,7 +252,8 @@ export default function App() {
       // Mejorar selección múltiple
       multiSelectionKeyCode: "Shift", // Shift para selección múltiple
       selectionKeyCode: "Shift", // Shift para selección de área
-      deleteKeyCode: "Delete", // Tecla Delete para eliminar
+      // Disable native delete to prevent conflicts with our custom handler
+      deleteKeyCode: null,
       // Mejorar interacción
       selectNodesOnDrag: false, // No seleccionar al arrastrar
       panOnDrag: [1, 2], // Pan con click medio o derecho

@@ -156,6 +156,18 @@ function NodeConfigurationPanel({
     }
   };
 
+  // Auto-save logic: Save changes 500ms after the user stops typing
+  useEffect(() => {
+    if (!action?.nodeId || !isDirty) return;
+
+    const timer = setTimeout(() => {
+      handleSave();
+    }, 500);
+
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formData, isDirty, action?.nodeId]);
+
   const handleExecute = async () => {
     const valid = validateForm();
     if (!valid) return;
@@ -712,16 +724,7 @@ function NodeConfigurationPanel({
         </button>
       </div>
 
-      <div className="config-body">
-        {renderFields()}
-
-        {isDirty && (
-          <div className="unsaved-changes">
-            <AlertCircle size={16} />
-            <span>Cambios sin guardar</span>
-          </div>
-        )}
-      </div>
+      <div className="config-body">{renderFields()}</div>
 
       <div className="config-footer">
         <button
