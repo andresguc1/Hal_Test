@@ -249,7 +249,11 @@ export default function App() {
   // Props estáticas que no cambian
   const staticFlowProps = useMemo(
     () => ({
-      fitView: true,
+      // Disable automatic fitView on mount – we will control zoom ourselves
+      fitView: false,
+      // sensible defaults for the first node
+      defaultZoom: 1,
+      defaultPosition: { x: 0, y: 0 },
       snapToGrid: true,
       snapGrid: [15, 15],
       style: { backgroundColor: colors.deepSpace },

@@ -333,6 +333,10 @@ export const useFlowManager = () => {
       const verticalSpacing = 80; // Reduced from 100
       const nodesPerRow = 3; // Number of nodes per row
 
+      // NEW: Central offset to position nodes in the middle of the canvas
+      const startX = 400;
+      const startY = 250;
+
       // Calculate grid position
       const nodeCount = nodesRef.current.length;
       const row = Math.floor(nodeCount / nodesPerRow);
@@ -342,8 +346,8 @@ export const useFlowManager = () => {
         id,
         type: "custom", // Use custom memoized node type
         position: {
-          x: col * (nodeWidth + horizontalSpacing),
-          y: row * (nodeHeight + verticalSpacing),
+          x: startX + col * (nodeWidth + horizontalSpacing),
+          y: startY + row * (nodeHeight + verticalSpacing),
         },
         data: {
           label, // Only show user-friendly label
@@ -363,12 +367,9 @@ export const useFlowManager = () => {
         currentData: newNode.data.configuration,
       });
 
-      // Auto-fit view after adding node
-      setTimeout(() => {
-        fitView({ padding: 0.1, duration: 200 });
-      }, 100);
+      // Auto-fit view removed to prevent unwanted zoom
     },
-    [saveToHistory, fitView],
+    [saveToHistory],
   );
 
   const deleteNode = useCallback(
