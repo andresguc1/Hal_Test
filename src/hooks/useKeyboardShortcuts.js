@@ -24,6 +24,22 @@ export function useKeyboardShortcuts(shortcuts, enabled = true) {
     (event) => {
       if (!enabled) return;
 
+      // Verificar si el foco está en un elemento de entrada
+      const target = event.target;
+      const isInputElement =
+        target.tagName === "INPUT" ||
+        target.tagName === "TEXTAREA" ||
+        target.tagName === "SELECT" ||
+        target.isContentEditable;
+
+      // Si estamos en un campo de entrada, solo permitir atajos con modificadores
+      if (isInputElement) {
+        const hasModifier = event.ctrlKey || event.metaKey || event.altKey;
+        if (!hasModifier) {
+          return; // Ignorar teclas simples en campos de entrada
+        }
+      }
+
       // Build key combination string
       const keys = [];
       if (event.ctrlKey || event.metaKey) keys.push("ctrl");
