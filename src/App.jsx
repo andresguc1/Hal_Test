@@ -12,6 +12,7 @@ import { nodeTypes } from "./components/nodes";
 import StatusIndicator from "./components/StatusIndicator";
 import ProgressBar from "./components/ProgressBar";
 import ImportDialog from "./components/ImportDialog";
+import ExportDialog from "./components/ExportDialog";
 
 import { colors } from "./components/styles/colors";
 import { useFlowManager } from "./components/hooks/useFlowManager.js";
@@ -34,6 +35,7 @@ export default function App() {
   // Panel visibility state
   const [isCreationPanelVisible, setIsCreationPanelVisible] = useState(true);
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
+  const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
 
   // Execution state for progress bar
   const [executionProgress, setExecutionProgress] = useState({
@@ -58,7 +60,6 @@ export default function App() {
     setSelectedAction,
     executeFlow,
     saveFlow,
-    exportFlow,
     importFlow,
     updateNodeConfiguration,
     undo,
@@ -110,14 +111,12 @@ export default function App() {
   }, [saveFlow, toast]);
 
   const handleExportFlow = useCallback(() => {
-    try {
-      exportFlow();
-      toast.success("✓ Flujo exportado exitosamente");
-    } catch (error) {
-      console.error("Error exportando flujo:", error);
-      toast.error("✗ Error al exportar el flujo");
-    }
-  }, [exportFlow, toast]);
+    setIsExportDialogOpen(true);
+  }, []);
+
+  const handleExportDialogClose = useCallback(() => {
+    setIsExportDialogOpen(false);
+  }, []);
 
   const handleImportFlow = useCallback(() => {
     setIsImportDialogOpen(true);
@@ -283,6 +282,14 @@ export default function App() {
         isOpen={isImportDialogOpen}
         onClose={handleImportDialogClose}
         onImport={handleImport}
+      />
+
+      {/* Export Dialog */}
+      <ExportDialog
+        isOpen={isExportDialogOpen}
+        onClose={handleExportDialogClose}
+        nodes={nodes}
+        edges={edges}
       />
     </div>
   );
