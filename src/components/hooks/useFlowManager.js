@@ -9,12 +9,13 @@ import {
   useReactFlow,
 } from "reactflow";
 import { v4 as uuidv4 } from "uuid";
-import { NODE_LABELS, STORAGE_KEYS } from "./constants";
+import { NODE_LABELS, STORAGE_KEYS, SCREENSHOT_RECOMMENDATIONS, VISUAL_CHANGE_NODES } from "./constants";
 import * as payloadBuilders from "./payloadBuilders";
 import { NODE_STATES, PROFESSIONAL_COLORS, getNodeStyle } from "./flowStyles";
 import { debounce, wouldCreateCycle } from "../../utils/flowUtils";
 import { logger } from "../../utils/logger";
 import { storageManager } from "../../utils/storageManager";
+import screenshotManager from "../../utils/ScreenshotManager";
 
 const MAX_RETRIES = 3;
 const RETRY_BASE_MS = 1000;
@@ -74,7 +75,7 @@ export const useFlowManager = () => {
 
   const [nodes, setNodes] = useState([]);
   const [edges, setEdges] = useState([]);
-  const [selectedAction, setSelectedAction] = useState(null);
+  const [selectedNodeId, setSelectedNodeId] = useState(null);
   const [history, setHistory] = useState({ past: [], future: [] });
 
   const [isLoading, setIsLoading] = useState(false);
@@ -100,6 +101,21 @@ export const useFlowManager = () => {
 
   nodesRef.current = nodes;
   edgesRef.current = edges;
+
+  // Compute selectedAction from current nodes state
+  const selectedAction = useMemo(() => {
+    if (!selectedNodeId) return null;
+
+    const node = nodes.find(n => n.id === selectedNodeId);
+    if (!node) return null;
+
+    return {
+      type: node.data.type,
+      nodeId: node.id,
+      currentData: node.data.configuration || {},
+      data: node.data, // Include full node data for screenshots
+    };
+  }, [selectedNodeId, nodes]);
 
   // ========================================
   // OPTIMIZACIÓN: Cleanup de AbortController
@@ -361,11 +377,7 @@ export const useFlowManager = () => {
       };
 
       setNodes((nds) => [...nds, newNode]);
-      setSelectedAction({
-        type: typeKey,
-        nodeId: id,
-        currentData: newNode.data.configuration,
-      });
+      setSelectedNodeId(id);
 
       // Auto-fit view removed to prevent unwanted zoom
     },
@@ -379,7 +391,7 @@ export const useFlowManager = () => {
       setEdges((eds) =>
         eds.filter((e) => e.source !== nodeId && e.target !== nodeId),
       );
-      setSelectedAction(null);
+      setSelectedNodeId(null);
     },
     [saveToHistory],
   );
@@ -400,17 +412,126 @@ export const useFlowManager = () => {
             },
           };
 
-          setSelectedAction((prev) =>
-            prev && prev.nodeId === nodeId
-              ? { ...prev, currentData: newConfig }
-              : prev,
-          );
+          // selectedAction will update automatically via useMemo
 
           return updated;
         }),
       );
     },
     [saveToHistory],
+  );
+
+  // ========================================
+  // SCREENSHOT CAPTURE METHODS
+  // ========================================
+
+  /**
+   * Update node with screenshot data
+   */
+  const updateNodeScreenshot = useCallback((nodeId, timing, screenshotData) => {
+    console.log('🖼️ updateNodeScreenshot called:', { nodeId, timing, screenshotData });
+    setNodes((nds) =>
+      nds.map((node) => {
+        if (node.id !== nodeId) return node;
+
+        const updatedNode = {
+          ...node,
+          data: {
+            ...node.data,
+            screenshots: {
+              ...node.data.screenshots,
+              [timing]: screenshotData,
+            },
+          },
+        };
+        console.log('🖼️ Updated node:', { nodeId, screenshots: updatedNode.data.screenshots });
+        return updatedNode;
+      }),
+    );
+  }, []);
+
+  /**
+   * Capture screenshot for a node
+   */
+  const captureScreenshot = useCallback(
+    async ({ nodeId, timing, browserId, nodeType }) => {
+      try {
+        // Get recommended delay for this node type
+        const recommendation = SCREENSHOT_RECOMMENDATIONS[nodeType];
+        const delay = recommendation?.delay?.[timing] || 0;
+
+        // Wait for animations/transitions to complete
+        if (delay > 0) {
+          await sleep(delay);
+        }
+
+        // Call backend to capture screenshot
+        // Use the correct payload format matching take_screenshot action
+        const screenshotPayload = {
+          browserId,
+          selector: null,      // Capture full viewport
+          path: null,          // EXPLICITLY null to force base64 return
+          fullPage: false,     // Only viewport
+          format: 'jpeg',      // JPEG for compression
+          quality: 80,         // 80% quality
+          timeout: 30000,      // 30 second timeout
+        };
+
+        const response = await fetch(`${API_BASE_URL}/take_screenshot`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(screenshotPayload),
+        });
+
+        if (!response.ok) {
+          throw new Error(`Screenshot API error: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+
+        // Log response for debugging
+        logger.debug('Screenshot API response', {
+          dataKeys: Object.keys(data),
+          hasScreenshot: !!data.screenshot,
+          screenshotType: typeof data.screenshot
+        }, 'useFlowManager');
+
+        // Check for screenshot data in response
+        // Backend might return it as 'screenshot', 'image', or 'data'
+        // CRITICAL: Ensure we pick a STRING, not an object (like { path: ... })
+        let base64Screenshot = null;
+
+        if (typeof data.screenshot === 'string') base64Screenshot = data.screenshot;
+        else if (typeof data.image === 'string') base64Screenshot = data.image;
+        else if (typeof data.data === 'string') base64Screenshot = data.data;
+
+        if (!base64Screenshot) {
+          logger.error('No valid screenshot string in response', { data }, 'useFlowManager');
+          throw new Error('No screenshot string in response. Got: ' + JSON.stringify(data));
+        }
+
+        // Cleanup old screenshot before saving new one
+        await screenshotManager.deleteScreenshot(nodeId, timing);
+
+        // Save screenshot using ScreenshotManager
+        const screenshotMetadata = await screenshotManager.saveScreenshot(
+          nodeId,
+          timing,
+          base64Screenshot
+        );
+
+        // Update node with screenshot metadata
+        updateNodeScreenshot(nodeId, timing, screenshotMetadata);
+
+        logger.debug('Screenshot captured', { nodeId, timing }, 'useFlowManager');
+
+        return screenshotMetadata;
+      } catch (error) {
+        logger.error('Screenshot capture failed', error, 'useFlowManager');
+        return null;
+      }
+    },
+    [updateNodeScreenshot]
   );
 
   // ========================================
@@ -427,6 +548,14 @@ export const useFlowManager = () => {
       const { nodeId, type, payload } = action;
       const endpoint =
         (payload && payload.endpoint) || `${API_BASE_URL}/${type}`;
+
+      // Get node and browserId for screenshot capture
+      const node = nodesRef.current.find(n => n.id === nodeId);
+      const config = node?.data?.configuration || {};
+      const browserId = payload?.browserId || config?.browserId;
+
+      // Automatic screenshot for visual-change nodes
+      const shouldAutoCapture = VISUAL_CHANGE_NODES.has(type) && browserId;
 
       updateNodeState(nodeId, NODE_STATES.EXECUTING);
       setIsLoading(true);
@@ -474,6 +603,8 @@ export const useFlowManager = () => {
         }
 
         try {
+          // NOTE: "Before" screenshot logic removed as per simplified requirements.
+
           const response = await fetch(endpoint, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -558,6 +689,20 @@ export const useFlowManager = () => {
             message: `✓ Ejecución exitosa en ${duration}ms`,
             details: result,
           });
+
+          // SCREENSHOT: Automatic capture for visual-change nodes
+          if (shouldAutoCapture) {
+            updateNodeState(nodeId, NODE_STATES.CAPTURING_AFTER);
+            await captureScreenshot({
+              nodeId,
+              timing: 'after',
+              browserId,
+              nodeType: type,
+            });
+            // Restore success state after screenshot
+            updateNodeState(nodeId, NODE_STATES.SUCCESS);
+          }
+
           setIsLoading(false);
 
           return {
@@ -616,7 +761,7 @@ export const useFlowManager = () => {
       setIsLoading(false);
       return { success: false, error: "Max reintentos alcanzados" };
     },
-    [updateNodeState],
+    [updateNodeState, captureScreenshot],
   );
 
   // ========================================
@@ -720,13 +865,7 @@ export const useFlowManager = () => {
   );
 
   const onNodeClick = useCallback((event, node) => {
-    setSelectedAction({
-      type: node.data.type,
-      nodeId: node.id,
-      currentData: node.data.configuration || {},
-      state: node.data.state,
-      errorDetails: node.data.errorDetails,
-    });
+    setSelectedNodeId(node.id);
   }, []);
 
   // ========================================
@@ -1204,7 +1343,7 @@ export const useFlowManager = () => {
 
     setNodes,
     setEdges,
-    setSelectedAction,
+    setSelectedAction: setSelectedNodeId, // Expose as setSelectedAction for backward compatibility
     setAutoSaveEnabled,
 
     addNode,

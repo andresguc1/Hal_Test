@@ -2,8 +2,9 @@
 import React, { useState, useEffect } from "react";
 import { XCircle, Play, Trash2, AlertCircle } from "lucide-react";
 import "./styles/NodeConfigurationPanel.css";
-import { NODE_FIELD_CONFIGS } from "./hooks/constants";
+import { NODE_FIELD_CONFIGS, VISUAL_CHANGE_NODES } from "./hooks/constants";
 import { logger } from "../utils/logger";
+import ScreenshotViewer from "./ScreenshotViewer";
 
 // ===============================================
 // CRÍTICO: Función de comparación personalizada para React.memo
@@ -17,7 +18,12 @@ const areEqual = (prevProps, nextProps) => {
   if (prevProps.action?.nodeId !== nextProps.action?.nodeId) return false;
   if (prevProps.action?.type !== nextProps.action?.type) return false;
 
-  // 3. Ignoramos intencionalmente la prop 'nodes'. Su referencia cambia constantemente
+  // 3. Si los screenshots cambian, debemos re-renderizar
+  const prevScreenshots = prevProps.action?.data?.screenshots;
+  const nextScreenshots = nextProps.action?.data?.screenshots;
+  if (prevScreenshots !== nextScreenshots) return false;
+
+  // 4. Ignoramos intencionalmente la prop 'nodes'. Su referencia cambia constantemente
   // al arrastrar, pero los cambios no afectan al formulario si el 'action' es el mismo.
   // Asumimos que las otras props (funciones) están envueltas en useCallback y son estables.
 
@@ -699,6 +705,7 @@ function NodeConfigurationPanel({
       ));
     }
 
+    // Render node-specific fields only (no universal screenshot fields)
     return fields.map(renderField);
   };
 
@@ -725,6 +732,15 @@ function NodeConfigurationPanel({
       </div>
 
       <div className="config-body">{renderFields()}</div>
+
+      {/* Screenshot Viewer - Only for visual-change nodes */}
+      {VISUAL_CHANGE_NODES.has(action?.type) && (
+        <ScreenshotViewer
+          screenshots={action?.data?.screenshots}
+          nodeId={action?.nodeId}
+          isVisible={isVisible}
+        />
+      )}
 
       <div className="config-footer">
         <button

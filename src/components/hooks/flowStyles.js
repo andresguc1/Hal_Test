@@ -6,6 +6,8 @@
 export const NODE_STATES = {
   DEFAULT: "default",
   EXECUTING: "executing",
+  CAPTURING_BEFORE: "capturing-before",
+  CAPTURING_AFTER: "capturing-after",
   SUCCESS: "success",
   ERROR: "error",
   WARNING: "warning",
@@ -58,6 +60,22 @@ export const PROFESSIONAL_COLORS = {
     text: "#495057",
     shadow: "0 1px 3px rgba(0,0,0,0.1)",
     borderWidth: "1px",
+  },
+  [NODE_STATES.CAPTURING_BEFORE]: {
+    background: "#f3e8ff", // Púrpura claro
+    border: "#9333ea",
+    text: "#581c87",
+    shadow: "0 0 12px rgba(147,51,234,0.4)",
+    animate: true,
+    borderWidth: "2px",
+  },
+  [NODE_STATES.CAPTURING_AFTER]: {
+    background: "#cffafe", // Cyan claro
+    border: "#06b6d4",
+    text: "#164e63",
+    shadow: "0 0 12px rgba(6,182,212,0.4)",
+    animate: true,
+    borderWidth: "2px",
   },
 };
 
