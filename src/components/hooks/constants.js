@@ -103,7 +103,7 @@ export const SCREENSHOT_RECOMMENDATIONS = {
   'hover': { priority: 'medium', delay: { after: 200 } },
 
   // Medium priority - Conditional changes
-  'scroll': { defaultTiming: 'after', priority: 'medium', delay: { before: 0, after: 200 } },
+
   'go_back': { defaultTiming: 'both', priority: 'medium', delay: { before: 0, after: 800 } },
   'go_forward': { defaultTiming: 'both', priority: 'medium', delay: { before: 0, after: 800 } },
   'refresh': { defaultTiming: 'both', priority: 'medium', delay: { before: 0, after: 1000 } },

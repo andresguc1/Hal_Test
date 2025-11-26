@@ -14,7 +14,6 @@ import * as payloadBuilders from "./payloadBuilders";
 import { NODE_STATES, PROFESSIONAL_COLORS, getNodeStyle } from "./flowStyles";
 import { debounce, wouldCreateCycle } from "../../utils/flowUtils";
 import { logger } from "../../utils/logger";
-import { storageManager } from "../../utils/storageManager";
 import screenshotManager from "../../utils/ScreenshotManager";
 
 const MAX_RETRIES = 3;
@@ -70,8 +69,10 @@ const DEFAULT_EDGE_OPTIONS = {
   },
 };
 
-export const useFlowManager = () => {
-  const { getViewport, fitView } = useReactFlow();
+import { projectManager } from "../../utils/ProjectManager";
+
+export const useFlowManager = (currentProject, currentFlowId) => {
+  const { getViewport } = useReactFlow();
 
   const [nodes, setNodes] = useState([]);
   const [edges, setEdges] = useState([]);
@@ -94,6 +95,7 @@ export const useFlowManager = () => {
   });
 
   const [autoSaveEnabled, setAutoSaveEnabled] = useState(true);
+  const [changeCounter, setChangeCounter] = useState(0);
 
   const nodesRef = useRef(nodes);
   const edgesRef = useRef(edges);
@@ -116,6 +118,40 @@ export const useFlowManager = () => {
       data: node.data, // Include full node data for screenshots
     };
   }, [selectedNodeId, nodes]);
+
+  // ========================================
+  // LOAD FLOW DATA
+  // ========================================
+  useEffect(() => {
+    const loadFlowData = async () => {
+      if (currentProject && currentFlowId) {
+        // Find flow in project data first (fastest)
+        let flow = currentProject.flows.find(f => f.id === currentFlowId);
+
+        // If not found or needs refresh, fetch from DB
+        if (!flow) {
+          try {
+            flow = await projectManager.getFlow(currentProject.id, currentFlowId);
+          } catch (err) {
+            console.error("Error loading flow:", err);
+          }
+        }
+
+        if (flow) {
+          setNodes(flow.nodes || []);
+          setEdges(flow.edges || []);
+          // DISABLED: Auto-focus was causing issues
+          // if (flow.viewport) {
+          //   setViewport(flow.viewport);
+          // }
+          // Reset history on flow switch
+          setHistory({ past: [], future: [] });
+        }
+      }
+    };
+
+    loadFlowData();
+  }, [currentProject, currentFlowId]);
 
   // ========================================
   // OPTIMIZACIÓN: Cleanup de AbortController
@@ -181,23 +217,22 @@ export const useFlowManager = () => {
   // OPTIMIZACIÓN 4: useCallback con deps correctas
   // ========================================
   const saveFlow = useCallback(
-    (silent = false) => {
+    async (silent = false) => {
+      if (!currentProject || !currentFlowId) return;
+
       const flowData = {
         nodes,
         edges,
         viewport: getViewport(),
-        timestamp: new Date().toISOString(),
-        version: "2.0",
-        stats: executionStats,
+        updatedAt: new Date().toISOString()
       };
 
       try {
-        // Use storageManager instead of direct localStorage
-        const success = storageManager.set("flow", flowData);
-
-        if (!success) {
-          throw new Error("Storage quota exceeded");
-        }
+        await projectManager.updateFlow(
+          currentProject.id,
+          currentFlowId,
+          flowData
+        );
 
         if (!silent) {
           setApiStatus({
@@ -205,6 +240,10 @@ export const useFlowManager = () => {
             message: "✓ Flujo guardado correctamente",
           });
         }
+
+        // Increment change counter for versioning
+        setChangeCounter(prev => prev + 1);
+
         return flowData;
       } catch (err) {
         logger.error("Error al guardar el flujo", err, "useFlowManager");
@@ -215,14 +254,14 @@ export const useFlowManager = () => {
         return flowData;
       }
     },
-    [nodes, edges, getViewport, executionStats],
+    [nodes, edges, getViewport, currentProject, currentFlowId],
   );
 
   // ========================================
   // OPTIMIZACIÓN: Auto-guardado con debounce
   // ========================================
   useEffect(() => {
-    if (!autoSaveEnabled || nodes.length === 0) return;
+    if (!autoSaveEnabled || !currentProject || !currentFlowId) return;
 
     // Debounce de 2 segundos - solo guarda si no hay cambios recientes
     const debouncedSave = debounce(() => {
@@ -239,7 +278,24 @@ export const useFlowManager = () => {
     return () => {
       debouncedSave.cancel();
     };
-  }, [nodes, edges, autoSaveEnabled, saveFlow]);
+  }, [nodes, edges, autoSaveEnabled, saveFlow, currentProject, currentFlowId]);
+
+  // ========================================
+  // VERSIONADO AUTOMÁTICO
+  // ========================================
+  useEffect(() => {
+    if (changeCounter > 0 && changeCounter % 10 === 0 && currentProject) {
+      projectManager.saveVersion(
+        currentProject.id,
+        `Auto-save: ${changeCounter} changes`,
+        true
+      ).then(() => {
+        logger.info("Auto-version created", { changeCounter }, "useFlowManager");
+      }).catch(err => {
+        logger.error("Failed to create auto-version", err, "useFlowManager");
+      });
+    }
+  }, [changeCounter, currentProject]);
 
   // ========================================
   // OPTIMIZACIÓN 5: Batch updates con useCallback

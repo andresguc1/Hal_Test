@@ -5,11 +5,10 @@
 .config-panel {
   position: fixed;
   top: 60px;
-  /* Fixed: was var(--header-height, 800px) */
   right: -340px;
   width: 320px;
-  height: calc(100vh - 60px - 50px);
-  /* Fixed: removed var() for consistency */
+  height: calc(100vh - 60px - 60px - 40px);
+  /* header - footer - flowtabs */
   background: var(--panel-bg, #111418);
   color: var(--cold-white, #e4e6eb);
   padding: 16px 20px;

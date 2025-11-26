@@ -11,6 +11,9 @@ importers:
       '@xyflow/react':
         specifier: ^12.9.0
         version: 12.9.3(@types/react@19.2.7)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      dexie:
+        specifier: ^4.2.1
+        version: 4.2.1
       react:
         specifier: ^19.1.1
         version: 19.2.0
@@ -969,6 +972,9 @@ packages:
   degenerator@5.0.1:
     resolution: {integrity: sha512-TllpMR/t0M5sqCXfj85i4XaAzxmS5tVA16dqvdkMwGmzI+dXLXnw3J+3Vdv7VKw+ThlTMboK6i9rnZ6Nntj5CQ==}
     engines: {node: '>= 14'}
+
+  dexie@4.2.1:
+    resolution: {integrity: sha512-Ckej0NS6jxQ4Po3OrSQBFddayRhTCic2DoCAG5zacOfOVB9P2Q5Xc5uL/nVa7ZVs+HdMnvUPzLFCB/JwpB6Csg==}
 
   eastasianwidth@0.2.0:
     resolution: {integrity: sha512-I88TYZWc9XiYHRQ4/3c5rjjfgkjhLyW2luGIheGERbNQ6OY7yTybanSpDXZa8y7VUP9YmDcYa+eyq4ca7iLqWA==}
@@ -2935,6 +2941,8 @@ snapshots:
       ast-types: 0.13.4
       escodegen: 2.1.0
       esprima: 4.0.1
+
+  dexie@4.2.1: {}
 
   eastasianwidth@0.2.0: {}
 

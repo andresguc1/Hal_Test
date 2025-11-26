@@ -16,6 +16,9 @@ import ExportDialog from "./components/ExportDialog";
 
 import { colors } from "./components/styles/colors";
 import { useFlowManager } from "./components/hooks/useFlowManager.js";
+import { useProjectManager } from "./components/hooks/useProjectManager.js";
+import { migrateFromLegacy } from "./utils/migration";
+import FlowTabs from "./components/FlowTabs";
 import { useFlowShortcuts } from "./hooks/useKeyboardShortcuts";
 import { useToast } from "./hooks/useToast";
 import { useFigmaInteraction } from "./hooks/useFigmaInteraction";
@@ -27,6 +30,52 @@ import { useFigmaInteraction } from "./hooks/useFigmaInteraction";
 export default function App() {
   // Toast notifications
   const toast = useToast();
+
+  // Project Manager Hook
+  const {
+    projects,
+    currentProject,
+    currentFlowId,
+    loadProjects,
+    createProject,
+    loadProject,
+    deleteProject,
+    createFlow,
+    switchFlow,
+    deleteFlow,
+    renameFlow
+  } = useProjectManager();
+
+  // Migration Effect
+  React.useEffect(() => {
+    const runMigration = async () => {
+      try {
+        const migratedProject = await migrateFromLegacy();
+        if (migratedProject) {
+          toast.success("✓ Proyecto migrado exitosamente");
+          await loadProjects(); // Reload projects list
+        }
+      } catch (error) {
+        console.error("Migration error:", error);
+        toast.error("Error en migración de datos");
+      }
+    };
+
+    runMigration();
+  }, [toast, loadProjects]);
+
+  // Initial Load
+  React.useEffect(() => {
+    loadProjects();
+  }, [loadProjects]);
+
+  // Load project when selected or initial load
+  React.useEffect(() => {
+    if (projects.length > 0 && !currentProject) {
+      // Load most recent project by default
+      loadProject(projects[0].id);
+    }
+  }, [projects, currentProject, loadProject]);
 
   // React Flow hooks & Figma Interaction
   const { figmaConfig, handlers } = useFigmaInteraction();
@@ -52,25 +101,25 @@ export default function App() {
   const {
     nodes,
     edges,
-    selectedAction,
     onNodesChange,
     onEdgesChange,
     onConnect,
     onNodeClick,
-    addNode,
+    updateNodeConfiguration,
     deleteNode,
     executeStep,
-    setSelectedAction,
-    setNodes,
     executeFlow,
     saveFlow,
     importFlow,
-    updateNodeConfiguration,
     undo,
     redo,
     canUndo,
     canRedo,
-  } = useFlowManager();
+    selectedAction,
+    setSelectedAction,
+    setNodes,
+    addNode
+  } = useFlowManager(currentProject, currentFlowId);
 
   // Computed values
   const isConfigurationPanelVisible = selectedAction !== null;
@@ -84,7 +133,9 @@ export default function App() {
   }, []);
 
   const closeConfiguration = useCallback(() => {
-    setSelectedAction(null);
+    if (setSelectedAction) {
+      setSelectedAction(null);
+    }
   }, [setSelectedAction]);
 
   // ========================================
@@ -173,9 +224,6 @@ export default function App() {
       }
       return;
     }
-
-    // PRIORIDAD 2: REMOVED - Fallback to delete active node was dangerous.
-    // Now we ONLY delete explicitly selected elements.
   }, [selectedAction, getNodes, getEdges, deleteElements, closeConfiguration]);
 
   // ========================================
@@ -201,8 +249,10 @@ export default function App() {
       },
     }));
 
-    setNodes((nds) => [...nds, ...newNodes]);
-    toast.success(`✓ ${newNodes.length} nodo(s) duplicado(s)`);
+    if (setNodes) {
+      setNodes((nds) => [...nds, ...newNodes]);
+      toast.success(`✓ ${newNodes.length} nodo(s) duplicado(s)`);
+    }
   }, [getNodes, setNodes, toast]);
 
   // ========================================
@@ -210,7 +260,9 @@ export default function App() {
   // ========================================
   const handleSelectAll = useCallback(() => {
     const allNodes = getNodes();
-    setNodes(allNodes.map((node) => ({ ...node, selected: true })));
+    if (setNodes) {
+      setNodes(allNodes.map((node) => ({ ...node, selected: true })));
+    }
   }, [getNodes, setNodes]);
 
   // ========================================
@@ -321,7 +373,7 @@ export default function App() {
       )}
 
       {/* Header */}
-      <AppHeader toggleCreationPanel={toggleCreationPanel} />
+      <AppHeader />
 
       {/* Panel izquierdo */}
       <NodeCreationPanel
@@ -355,9 +407,30 @@ export default function App() {
         onExecute={executeStep}
         onClose={closeConfiguration}
         onDeleteNode={deleteNode}
-        updateNodeConfiguration={updateNodeConfiguration} // <-- pasado correctamente
-        nodes={nodes} // <-- pasado para el dropdown de browserId
+        updateNodeConfiguration={updateNodeConfiguration}
+        nodes={nodes}
       />
+
+      {/* Flow Tabs - Above Footer */}
+      {currentProject && (
+        <FlowTabs
+          flows={currentProject.flows || []}
+          activeFlowId={currentFlowId}
+          onSwitchFlow={switchFlow}
+          onCreateFlow={createFlow}
+          onRenameFlow={renameFlow}
+          onDeleteFlow={deleteFlow}
+          onDuplicateFlow={() => {
+            // TODO: Implement duplicate
+            toast.info("Duplicar flujo: Próximamente");
+          }}
+          projects={projects}
+          currentProject={currentProject}
+          onSelectProject={loadProject}
+          onCreateProject={createProject}
+          onDeleteProject={deleteProject}
+        />
+      )}
 
       {/* Footer */}
       <AppFooter

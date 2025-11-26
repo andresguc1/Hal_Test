@@ -1,5 +1,3 @@
-// hal_test/src/components/AppHeader.jsx
-
 import React from "react";
 import "./styles/AppHeader.css";
 import UserMenu from "./UserMenu";

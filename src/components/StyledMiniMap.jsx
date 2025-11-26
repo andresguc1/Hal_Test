@@ -21,6 +21,7 @@ export default function StyledMiniMap() {
 
   return (
     <MiniMap
+      className="custom-minimap"
       nodeStrokeColor={(n) => getNodeColor(n)}
       nodeColor={(n) => getNodeColor(n)}
       nodeBorderRadius={6}
