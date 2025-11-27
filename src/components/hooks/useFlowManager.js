@@ -330,6 +330,7 @@ export const useFlowManager = (currentProject, currentFlowId) => {
             ...node.data,
             state,
             errorDetails,
+            error: errorDetails?.message || null, // NEW: Store simple error message
             lastExecuted: new Date().toISOString(),
           },
           style: getNodeStyle(state, node.style),
@@ -347,6 +348,7 @@ export const useFlowManager = (currentProject, currentFlowId) => {
           state: NODE_STATES.DEFAULT,
           executed: false,
           errorDetails: null,
+          error: null, // NEW: Clear error message
           executionTime: null,
         },
         style: getNodeStyle(NODE_STATES.DEFAULT, node.style),
@@ -420,8 +422,8 @@ export const useFlowManager = (currentProject, currentFlowId) => {
       // Calculate position based on existing nodes to avoid overlap
       const nodeWidth = 160; // Reduced from 220
       const nodeHeight = 60; // Reduced from 80
-      const horizontalSpacing = 80; // Reduced from 100
-      const verticalSpacing = 80; // Reduced from 100
+      const horizontalSpacing = 100; // Spacing between columns
+      const verticalSpacing = 150; // Increased from 80 to prevent overlap
       const nodesPerRow = 3; // Number of nodes per row
 
       // NEW: Central offset to position nodes in the middle of the canvas
@@ -970,9 +972,79 @@ export const useFlowManager = (currentProject, currentFlowId) => {
   // Mantener la lógica existente con las optimizaciones aplicadas
   // ========================================
 
+  /**
+   * Validates the flow before execution
+   * @returns {Array<string>} Array of error messages (empty if valid)
+   */
+  const validateFlow = useCallback((nodes, edges) => {
+    const errors = [];
+
+    // Skip validation if there are no nodes
+    if (nodes.length === 0) {
+      return errors;
+    }
+
+    // Check for disconnected nodes (only if there's more than one node)
+    if (nodes.length > 1) {
+      const connectedNodeIds = new Set();
+      edges.forEach((edge) => {
+        connectedNodeIds.add(edge.source);
+        connectedNodeIds.add(edge.target);
+      });
+
+      const disconnectedNodes = nodes.filter(
+        (n) => !connectedNodeIds.has(n.id),
+      );
+      if (disconnectedNodes.length > 0) {
+        const labels = disconnectedNodes
+          .map((n) => n.data.label || n.data.type)
+          .join(", ");
+        errors.push(
+          `Nodos desconectados detectados: ${labels}. Todos los nodos deben estar conectados para ejecutar el flujo.`,
+        );
+      }
+    }
+
+    // Check for browser-dependent nodes without browser initialization
+    const browserDependentTypes = [
+      "open_url",
+      "click",
+      "type_text",
+      "scroll",
+      "submit_form",
+      "drag_drop",
+      "upload_file",
+      "take_screenshot",
+    ];
+    const hasBrowserInit = nodes.some((n) => n.data.type === "launch_browser");
+    const browserDependentNodes = nodes.filter((n) =>
+      browserDependentTypes.includes(n.data.type),
+    );
+
+    if (browserDependentNodes.length > 0 && !hasBrowserInit) {
+      errors.push(
+        'El flujo contiene acciones que requieren un navegador (como "Abrir URL" o "Click"), pero no hay un nodo "Lanzar Navegador". Agrega un nodo "Lanzar Navegador" al inicio del flujo.',
+      );
+    }
+
+    return errors;
+  }, []);
+
   const executeFlow = useCallback(
     async (options = {}) => {
       const { stopOnError = true } = options;
+
+      // 0. Validate flow before execution
+      const validationErrors = validateFlow(nodes, edges);
+      if (validationErrors.length > 0) {
+        const errorMessage = validationErrors.join(" ");
+        setApiStatus({
+          state: "error",
+          message: `✗ Validación fallida: ${errorMessage}`,
+        });
+        console.error("Flow validation failed:", validationErrors);
+        return { success: false, error: errorMessage };
+      }
 
       // 1. Identify independent flows (connected components)
       const connectedComponents = getConnectedComponents(nodes, edges);
@@ -1045,58 +1117,84 @@ export const useFlowManager = (currentProject, currentFlowId) => {
 
         // ISOLATION: Reset runtime context for each flow
         const runtimeContext = {};
+        let browserId = null; // Track browser ID for cleanup
 
         console.log(
           `▶ Starting Flow ${flowIndex + 1}/${connectedComponents.length} (${sortedNodes.length} steps)`,
         );
 
-        for (let i = 0; i < sortedNodes.length; i++) {
-          if (executionAbortController.current?.signal.aborted) break;
+        try {
+          for (let i = 0; i < sortedNodes.length; i++) {
+            if (executionAbortController.current?.signal.aborted) break;
 
-          const node = sortedNodes[i];
+            const node = sortedNodes[i];
 
-          // Merge runtime context (e.g., browserId) into the payload
-          const payload = {
-            ...(node.data.configuration || {}),
-            ...runtimeContext,
-          };
+            // Merge runtime context (e.g., browserId) into the payload
+            const payload = {
+              ...(node.data.configuration || {}),
+              ...runtimeContext,
+            };
 
-          const action = {
-            nodeId: node.id,
-            type: node.data.type,
-            payload,
-          };
+            const action = {
+              nodeId: node.id,
+              type: node.data.type,
+              payload,
+            };
 
-          const result = await executeStep(action, options);
+            const result = await executeStep(action, options);
 
-          // Update runtime context with new instanceId/browserId if available
-          if (result.success && result.instanceId) {
-            runtimeContext.browserId = result.instanceId;
-            runtimeContext.instanceId = result.instanceId;
+            // Update runtime context with new instanceId/browserId if available
+            if (result.success && result.instanceId) {
+              browserId = result.instanceId; // Track for cleanup
+              runtimeContext.browserId = result.instanceId;
+              runtimeContext.instanceId = result.instanceId;
+            }
+
+            if (result.skipped) {
+              globalStats.skipped++;
+            } else if (result.success) {
+              globalStats.successful++;
+            } else {
+              globalStats.failed++;
+              if (stopOnError) {
+                globalStats.duration = Date.now() - startTime;
+                setExecutionStats({ ...globalStats });
+                setApiStatus({
+                  state: "error",
+                  message: `✗ Flujo detenido en paso ${i + 1}/${sortedNodes.length} del Flujo ${flowIndex + 1}`,
+                  details: globalStats,
+                });
+                // Browser cleanup will happen in finally block
+                return { success: false, stats: globalStats };
+              }
+            }
+
+            setApiStatus({
+              state: "loading",
+              message: `Flujo ${flowIndex + 1}/${connectedComponents.length}: Paso ${i + 1}/${sortedNodes.length} (${globalStats.successful} OK, ${globalStats.failed} Err)`,
+            });
           }
-
-          if (result.skipped) {
-            globalStats.skipped++;
-          } else if (result.success) {
-            globalStats.successful++;
-          } else {
-            globalStats.failed++;
-            if (stopOnError) {
-              globalStats.duration = Date.now() - startTime;
-              setExecutionStats({ ...globalStats });
-              setApiStatus({
-                state: "error",
-                message: `✗ Flujo detenido en paso ${i + 1}/${sortedNodes.length} del Flujo ${flowIndex + 1}`,
-                details: globalStats,
+        } catch (error) {
+          console.error(`Error in flow ${flowIndex + 1}:`, error);
+          globalStats.failed++;
+        } finally {
+          // CLEANUP: Always close browser if it was opened, even on error
+          if (browserId) {
+            try {
+              console.log(`🧹 Cleaning up browser ${browserId}...`);
+              await fetch("http://localhost:2001/api/actions/close_browser", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ browserId }),
               });
-              return { success: false, stats: globalStats };
+              console.log(`✓ Browser ${browserId} closed successfully`);
+            } catch (cleanupError) {
+              console.warn(
+                `⚠ Failed to close browser ${browserId}:`,
+                cleanupError,
+              );
             }
           }
-
-          setApiStatus({
-            state: "loading",
-            message: `Flujo ${flowIndex + 1}/${connectedComponents.length}: Paso ${i + 1}/${sortedNodes.length} (${globalStats.successful} OK, ${globalStats.failed} Err)`,
-          });
         }
       }
 
@@ -1121,6 +1219,7 @@ export const useFlowManager = (currentProject, currentFlowId) => {
       executionStats,
       executeStep,
       resetNodeStates,
+      validateFlow,
     ],
   );
 

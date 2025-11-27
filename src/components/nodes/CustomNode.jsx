@@ -6,7 +6,11 @@
 import React, { memo } from "react";
 import { Handle, Position } from "reactflow";
 import { Play, CheckCircle, XCircle, Clock } from "lucide-react";
-import { NODE_STATES, PROFESSIONAL_COLORS, CATEGORY_COLORS } from "../hooks/flowStyles";
+import {
+  NODE_STATES,
+  PROFESSIONAL_COLORS,
+  CATEGORY_COLORS,
+} from "../hooks/flowStyles";
 import { NODE_TYPE_TO_CATEGORY } from "../hooks/constants";
 import "./CustomNode.css";
 
@@ -38,21 +42,26 @@ function CustomNode({ data, selected }) {
   };
 
   // Determine category color
-  const categoryKey = NODE_TYPE_TO_CATEGORY[data?.type] || 'default';
+  const categoryKey = NODE_TYPE_TO_CATEGORY[data?.type] || "default";
   const categoryColor = CATEGORY_COLORS[categoryKey] || CATEGORY_COLORS.default;
 
   // Define state colors for 3D effect
   const stateColors = {
-    [NODE_STATES.DEFAULT]: { border: colors.border, shadow: '#94a3b8' }, // Slate-400
-    [NODE_STATES.EXECUTING]: { border: '#eab308', shadow: '#ca8a04' }, // Yellow-500/600
-    [NODE_STATES.SUCCESS]: { border: '#22c55e', shadow: '#15803d' }, // Green-500/700
-    [NODE_STATES.ERROR]: { border: '#ef4444', shadow: '#b91c1c' }, // Red-500/700
-    [NODE_STATES.SKIPPED]: { border: '#64748b', shadow: '#475569' }, // Slate-500/600
+    [NODE_STATES.DEFAULT]: { border: colors.border, shadow: "#94a3b8" }, // Slate-400
+    [NODE_STATES.EXECUTING]: { border: "#eab308", shadow: "#ca8a04" }, // Yellow-500/600
+    [NODE_STATES.SUCCESS]: { border: "#22c55e", shadow: "#15803d" }, // Green-500/700
+    [NODE_STATES.ERROR]: { border: "#ef4444", shadow: "#b91c1c" }, // Red-500/700
+    [NODE_STATES.SKIPPED]: { border: "#64748b", shadow: "#475569" }, // Slate-500/600
   };
 
-  const currentStateColor = stateColors[state] || stateColors[NODE_STATES.DEFAULT];
-  const borderColor = selected ? colors.selectedBorder : currentStateColor.border;
-  const shadowColor = selected ? colors.selectedBorder : currentStateColor.shadow;
+  const currentStateColor =
+    stateColors[state] || stateColors[NODE_STATES.DEFAULT];
+  const borderColor = selected
+    ? colors.selectedBorder
+    : currentStateColor.border;
+  const shadowColor = selected
+    ? colors.selectedBorder
+    : currentStateColor.shadow;
 
   const nodeStyle = {
     background: colors.background,
@@ -106,7 +115,11 @@ function CustomNode({ data, selected }) {
   // We will rely on the tooltip for full details.
 
   return (
-    <div style={nodeStyle} className="custom-node" title={data?.label + (data?.description ? `\n${data.description}` : "")}>
+    <div
+      style={nodeStyle}
+      className="custom-node"
+      title={data?.label + (data?.description ? `\n${data.description}` : "")}
+    >
       {/* Input Handle - Left */}
       <Handle
         type="target"
@@ -127,15 +140,17 @@ function CustomNode({ data, selected }) {
 
       {/* Error indicator (small dot or border change instead of text to keep size) */}
       {state === NODE_STATES.ERROR && (
-        <div style={{
-          position: 'absolute',
-          top: 4,
-          right: 4,
-          width: 8,
-          height: 8,
-          borderRadius: '50%',
-          background: '#ff6b6b'
-        }} />
+        <div
+          style={{
+            position: "absolute",
+            top: 4,
+            right: 4,
+            width: 8,
+            height: 8,
+            borderRadius: "50%",
+            background: "#ff6b6b",
+          }}
+        />
       )}
 
       {/* Output Handle - Right */}

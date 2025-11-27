@@ -733,6 +733,17 @@ function NodeConfigurationPanel({
 
       <div className="config-body">{renderFields()}</div>
 
+      {/* Error Display - Above Screenshots */}
+      {action?.data?.error && (
+        <div className="error-display">
+          <div className="error-header">
+            <AlertCircle size={20} />
+            <span>Error de Ejecución</span>
+          </div>
+          <div className="error-message">{action.data.error}</div>
+        </div>
+      )}
+
       {/* Screenshot Viewer - Only for visual-change nodes */}
       {VISUAL_CHANGE_NODES.has(action?.type) && (
         <ScreenshotViewer

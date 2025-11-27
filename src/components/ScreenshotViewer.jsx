@@ -114,9 +114,7 @@ function ScreenshotViewer({ screenshots, nodeId, isVisible = true }) {
           ) : (
             <div className="screenshot-placeholder">
               <div className="placeholder-icon">📸</div>
-              <div className="placeholder-text">
-                Screenshot se capturará automáticamente al ejecutar
-              </div>
+              <div className="placeholder-text">Sin captura disponible</div>
             </div>
           )}
         </div>
