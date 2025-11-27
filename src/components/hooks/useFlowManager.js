@@ -9,10 +9,19 @@ import {
   useReactFlow,
 } from "reactflow";
 import { v4 as uuidv4 } from "uuid";
-import { NODE_LABELS, STORAGE_KEYS, SCREENSHOT_RECOMMENDATIONS, VISUAL_CHANGE_NODES } from "./constants";
+import {
+  NODE_LABELS,
+  STORAGE_KEYS,
+  SCREENSHOT_RECOMMENDATIONS,
+  VISUAL_CHANGE_NODES,
+} from "./constants";
 import * as payloadBuilders from "./payloadBuilders";
 import { NODE_STATES, PROFESSIONAL_COLORS, getNodeStyle } from "./flowStyles";
-import { debounce, wouldCreateCycle } from "../../utils/flowUtils";
+import {
+  debounce,
+  wouldCreateCycle,
+  getConnectedComponents,
+} from "../../utils/flowUtils";
 import { logger } from "../../utils/logger";
 import screenshotManager from "../../utils/ScreenshotManager";
 
@@ -108,7 +117,7 @@ export const useFlowManager = (currentProject, currentFlowId) => {
   const selectedAction = useMemo(() => {
     if (!selectedNodeId) return null;
 
-    const node = nodes.find(n => n.id === selectedNodeId);
+    const node = nodes.find((n) => n.id === selectedNodeId);
     if (!node) return null;
 
     return {
@@ -126,12 +135,15 @@ export const useFlowManager = (currentProject, currentFlowId) => {
     const loadFlowData = async () => {
       if (currentProject && currentFlowId) {
         // Find flow in project data first (fastest)
-        let flow = currentProject.flows.find(f => f.id === currentFlowId);
+        let flow = currentProject.flows.find((f) => f.id === currentFlowId);
 
         // If not found or needs refresh, fetch from DB
         if (!flow) {
           try {
-            flow = await projectManager.getFlow(currentProject.id, currentFlowId);
+            flow = await projectManager.getFlow(
+              currentProject.id,
+              currentFlowId,
+            );
           } catch (err) {
             console.error("Error loading flow:", err);
           }
@@ -224,14 +236,14 @@ export const useFlowManager = (currentProject, currentFlowId) => {
         nodes,
         edges,
         viewport: getViewport(),
-        updatedAt: new Date().toISOString()
+        updatedAt: new Date().toISOString(),
       };
 
       try {
         await projectManager.updateFlow(
           currentProject.id,
           currentFlowId,
-          flowData
+          flowData,
         );
 
         if (!silent) {
@@ -242,7 +254,7 @@ export const useFlowManager = (currentProject, currentFlowId) => {
         }
 
         // Increment change counter for versioning
-        setChangeCounter(prev => prev + 1);
+        setChangeCounter((prev) => prev + 1);
 
         return flowData;
       } catch (err) {
@@ -285,15 +297,22 @@ export const useFlowManager = (currentProject, currentFlowId) => {
   // ========================================
   useEffect(() => {
     if (changeCounter > 0 && changeCounter % 10 === 0 && currentProject) {
-      projectManager.saveVersion(
-        currentProject.id,
-        `Auto-save: ${changeCounter} changes`,
-        true
-      ).then(() => {
-        logger.info("Auto-version created", { changeCounter }, "useFlowManager");
-      }).catch(err => {
-        logger.error("Failed to create auto-version", err, "useFlowManager");
-      });
+      projectManager
+        .saveVersion(
+          currentProject.id,
+          `Auto-save: ${changeCounter} changes`,
+          true,
+        )
+        .then(() => {
+          logger.info(
+            "Auto-version created",
+            { changeCounter },
+            "useFlowManager",
+          );
+        })
+        .catch((err) => {
+          logger.error("Failed to create auto-version", err, "useFlowManager");
+        });
     }
   }, [changeCounter, currentProject]);
 
@@ -485,7 +504,11 @@ export const useFlowManager = (currentProject, currentFlowId) => {
    * Update node with screenshot data
    */
   const updateNodeScreenshot = useCallback((nodeId, timing, screenshotData) => {
-    console.log('🖼️ updateNodeScreenshot called:', { nodeId, timing, screenshotData });
+    console.log("🖼️ updateNodeScreenshot called:", {
+      nodeId,
+      timing,
+      screenshotData,
+    });
     setNodes((nds) =>
       nds.map((node) => {
         if (node.id !== nodeId) return node;
@@ -500,7 +523,10 @@ export const useFlowManager = (currentProject, currentFlowId) => {
             },
           },
         };
-        console.log('🖼️ Updated node:', { nodeId, screenshots: updatedNode.data.screenshots });
+        console.log("🖼️ Updated node:", {
+          nodeId,
+          screenshots: updatedNode.data.screenshots,
+        });
         return updatedNode;
       }),
     );
@@ -525,17 +551,17 @@ export const useFlowManager = (currentProject, currentFlowId) => {
         // Use the correct payload format matching take_screenshot action
         const screenshotPayload = {
           browserId,
-          selector: null,      // Capture full viewport
-          path: null,          // EXPLICITLY null to force base64 return
-          fullPage: false,     // Only viewport
-          format: 'jpeg',      // JPEG for compression
-          quality: 80,         // 80% quality
-          timeout: 30000,      // 30 second timeout
+          selector: null, // Capture full viewport
+          path: null, // EXPLICITLY null to force base64 return
+          fullPage: false, // Only viewport
+          format: "jpeg", // JPEG for compression
+          quality: 80, // 80% quality
+          timeout: 30000, // 30 second timeout
         };
 
         const response = await fetch(`${API_BASE_URL}/take_screenshot`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify(screenshotPayload),
         });
 
@@ -546,24 +572,35 @@ export const useFlowManager = (currentProject, currentFlowId) => {
         const data = await response.json();
 
         // Log response for debugging
-        logger.debug('Screenshot API response', {
-          dataKeys: Object.keys(data),
-          hasScreenshot: !!data.screenshot,
-          screenshotType: typeof data.screenshot
-        }, 'useFlowManager');
+        logger.debug(
+          "Screenshot API response",
+          {
+            dataKeys: Object.keys(data),
+            hasScreenshot: !!data.screenshot,
+            screenshotType: typeof data.screenshot,
+          },
+          "useFlowManager",
+        );
 
         // Check for screenshot data in response
         // Backend might return it as 'screenshot', 'image', or 'data'
         // CRITICAL: Ensure we pick a STRING, not an object (like { path: ... })
         let base64Screenshot = null;
 
-        if (typeof data.screenshot === 'string') base64Screenshot = data.screenshot;
-        else if (typeof data.image === 'string') base64Screenshot = data.image;
-        else if (typeof data.data === 'string') base64Screenshot = data.data;
+        if (typeof data.screenshot === "string")
+          base64Screenshot = data.screenshot;
+        else if (typeof data.image === "string") base64Screenshot = data.image;
+        else if (typeof data.data === "string") base64Screenshot = data.data;
 
         if (!base64Screenshot) {
-          logger.error('No valid screenshot string in response', { data }, 'useFlowManager');
-          throw new Error('No screenshot string in response. Got: ' + JSON.stringify(data));
+          logger.error(
+            "No valid screenshot string in response",
+            { data },
+            "useFlowManager",
+          );
+          throw new Error(
+            "No screenshot string in response. Got: " + JSON.stringify(data),
+          );
         }
 
         // Cleanup old screenshot before saving new one
@@ -573,21 +610,25 @@ export const useFlowManager = (currentProject, currentFlowId) => {
         const screenshotMetadata = await screenshotManager.saveScreenshot(
           nodeId,
           timing,
-          base64Screenshot
+          base64Screenshot,
         );
 
         // Update node with screenshot metadata
         updateNodeScreenshot(nodeId, timing, screenshotMetadata);
 
-        logger.debug('Screenshot captured', { nodeId, timing }, 'useFlowManager');
+        logger.debug(
+          "Screenshot captured",
+          { nodeId, timing },
+          "useFlowManager",
+        );
 
         return screenshotMetadata;
       } catch (error) {
-        logger.error('Screenshot capture failed', error, 'useFlowManager');
+        logger.error("Screenshot capture failed", error, "useFlowManager");
         return null;
       }
     },
-    [updateNodeScreenshot]
+    [updateNodeScreenshot],
   );
 
   // ========================================
@@ -606,7 +647,7 @@ export const useFlowManager = (currentProject, currentFlowId) => {
         (payload && payload.endpoint) || `${API_BASE_URL}/${type}`;
 
       // Get node and browserId for screenshot capture
-      const node = nodesRef.current.find(n => n.id === nodeId);
+      const node = nodesRef.current.find((n) => n.id === nodeId);
       const config = node?.data?.configuration || {};
       const browserId = payload?.browserId || config?.browserId;
 
@@ -751,7 +792,7 @@ export const useFlowManager = (currentProject, currentFlowId) => {
             updateNodeState(nodeId, NODE_STATES.CAPTURING_AFTER);
             await captureScreenshot({
               nodeId,
-              timing: 'after',
+              timing: "after",
               browserId,
               nodeType: type,
             });
@@ -933,9 +974,10 @@ export const useFlowManager = (currentProject, currentFlowId) => {
     async (options = {}) => {
       const { stopOnError = true } = options;
 
-      const sortedNodes = topologicalSort(nodes, edges);
+      // 1. Identify independent flows (connected components)
+      const connectedComponents = getConnectedComponents(nodes, edges);
 
-      if (!sortedNodes || sortedNodes.length === 0) {
+      if (!connectedComponents || connectedComponents.length === 0) {
         setApiStatus({
           state: "idle",
           message: "No hay nodos para ejecutar.",
@@ -943,122 +985,134 @@ export const useFlowManager = (currentProject, currentFlowId) => {
         return { success: true, stats: executionStats };
       }
 
-      if (sortedNodes.length !== nodes.length) {
-        setApiStatus({
-          state: "error",
-          message: "✗ Flujo no ejecutable: Ciclo detectado.",
-        });
-        return { success: false, error: "Ciclo detectado" };
-      }
-
-      // --- DEBUG LOGGING ---
       console.group("🚀 Execute Flow - Plan");
-      console.log("Total Nodes:", sortedNodes.length);
-      console.log("Execution Order (Topological Sort):");
+      console.log(`Detected ${connectedComponents.length} independent flows.`);
 
-      const debugNodes = sortedNodes.map((node, index) => {
-        const outgoingEdges = edges.filter((e) => e.source === node.id);
-        const nextNodes = outgoingEdges.map((e) => {
-          const targetNode = nodes.find((n) => n.id === e.target);
-          return targetNode
-            ? `${targetNode.data.label} (${targetNode.id})`
-            : e.target;
-        });
-
-        return {
-          step: index + 1,
-          id: node.id,
-          type: node.data.type,
-          label: node.data.label,
-          payload: node.data.configuration,
-          nextSteps: nextNodes,
-        };
-      });
-
-      console.table(debugNodes);
+      // Validate cycles in each component
+      for (const componentNodes of connectedComponents) {
+        const componentEdges = edges.filter(
+          (e) =>
+            componentNodes.some((n) => n.id === e.source) &&
+            componentNodes.some((n) => n.id === e.target),
+        );
+        const sorted = topologicalSort(componentNodes, componentEdges);
+        if (sorted.length !== componentNodes.length) {
+          console.error("Cycle detected in component", componentNodes);
+          setApiStatus({
+            state: "error",
+            message:
+              "✗ Flujo no ejecutable: Ciclo detectado en uno de los flujos.",
+          });
+          console.groupEnd();
+          return { success: false, error: "Ciclo detectado" };
+        }
+      }
       console.groupEnd();
-      // ---------------------
 
       executionAbortController.current = new AbortController();
       resetNodeStates();
 
       const startTime = Date.now();
-      const stats = {
-        total: sortedNodes.length,
+      const globalStats = {
+        total: nodes.length,
         successful: 0,
         failed: 0,
         skipped: 0,
         duration: 0,
       };
 
-      setExecutionStats(stats);
+      setExecutionStats(globalStats);
       setApiStatus({
         state: "loading",
-        message: `Ejecutando flujo (${sortedNodes.length} pasos)...`,
+        message: `Ejecutando ${connectedComponents.length} flujos (${nodes.length} pasos totales)...`,
       });
 
-      const runtimeContext = {};
+      // 2. Execute each flow sequentially
+      for (
+        let flowIndex = 0;
+        flowIndex < connectedComponents.length;
+        flowIndex++
+      ) {
+        const flowNodes = connectedComponents[flowIndex];
+        const flowEdges = edges.filter(
+          (e) =>
+            flowNodes.some((n) => n.id === e.source) &&
+            flowNodes.some((n) => n.id === e.target),
+        );
 
-      for (let i = 0; i < sortedNodes.length; i++) {
-        const node = sortedNodes[i];
+        // Sort nodes for this specific flow
+        const sortedNodes = topologicalSort(flowNodes, flowEdges);
 
-        // Merge runtime context (e.g., browserId) into the payload
-        const payload = {
-          ...(node.data.configuration || {}),
-          ...runtimeContext,
-        };
+        // ISOLATION: Reset runtime context for each flow
+        const runtimeContext = {};
 
-        const action = {
-          nodeId: node.id,
-          type: node.data.type,
-          payload,
-        };
+        console.log(
+          `▶ Starting Flow ${flowIndex + 1}/${connectedComponents.length} (${sortedNodes.length} steps)`,
+        );
 
-        const result = await executeStep(action, options);
+        for (let i = 0; i < sortedNodes.length; i++) {
+          if (executionAbortController.current?.signal.aborted) break;
 
-        // Update runtime context with new instanceId/browserId if available
-        if (result.success && result.instanceId) {
-          runtimeContext.browserId = result.instanceId;
-          runtimeContext.instanceId = result.instanceId;
-        }
+          const node = sortedNodes[i];
 
-        if (result.skipped) {
-          stats.skipped++;
-        } else if (result.success) {
-          stats.successful++;
-        } else {
-          stats.failed++;
-          if (stopOnError) {
-            stats.duration = Date.now() - startTime;
-            setExecutionStats(stats);
-            setApiStatus({
-              state: "error",
-              message: `✗ Flujo detenido en paso ${i + 1}/${sortedNodes.length}`,
-              details: stats,
-            });
-            return { success: false, stats };
+          // Merge runtime context (e.g., browserId) into the payload
+          const payload = {
+            ...(node.data.configuration || {}),
+            ...runtimeContext,
+          };
+
+          const action = {
+            nodeId: node.id,
+            type: node.data.type,
+            payload,
+          };
+
+          const result = await executeStep(action, options);
+
+          // Update runtime context with new instanceId/browserId if available
+          if (result.success && result.instanceId) {
+            runtimeContext.browserId = result.instanceId;
+            runtimeContext.instanceId = result.instanceId;
           }
-        }
 
-        setApiStatus({
-          state: "loading",
-          message: `Progreso: ${i + 1}/${sortedNodes.length} (${stats.successful} exitosos, ${stats.failed} fallidos)`,
-        });
+          if (result.skipped) {
+            globalStats.skipped++;
+          } else if (result.success) {
+            globalStats.successful++;
+          } else {
+            globalStats.failed++;
+            if (stopOnError) {
+              globalStats.duration = Date.now() - startTime;
+              setExecutionStats({ ...globalStats });
+              setApiStatus({
+                state: "error",
+                message: `✗ Flujo detenido en paso ${i + 1}/${sortedNodes.length} del Flujo ${flowIndex + 1}`,
+                details: globalStats,
+              });
+              return { success: false, stats: globalStats };
+            }
+          }
+
+          setApiStatus({
+            state: "loading",
+            message: `Flujo ${flowIndex + 1}/${connectedComponents.length}: Paso ${i + 1}/${sortedNodes.length} (${globalStats.successful} OK, ${globalStats.failed} Err)`,
+          });
+        }
       }
 
-      stats.duration = Date.now() - startTime;
-      setExecutionStats(stats);
+      globalStats.duration = Date.now() - startTime;
+      setExecutionStats(globalStats);
 
-      const allSuccess = stats.failed === 0;
+      const allSuccess = globalStats.failed === 0;
       setApiStatus({
         state: allSuccess ? "success" : "warning",
         message: allSuccess
-          ? `✓ Flujo completado en ${(stats.duration / 1000).toFixed(2)}s`
-          : `⚠ Flujo completado con errores (${stats.failed} fallidos)`,
-        details: stats,
+          ? `✓ ${connectedComponents.length} flujos completados en ${(globalStats.duration / 1000).toFixed(2)}s`
+          : `⚠ Completado con errores (${globalStats.failed} fallidos)`,
+        details: globalStats,
       });
 
-      return { success: allSuccess, stats };
+      return { success: allSuccess, stats: globalStats };
     },
     [
       nodes,

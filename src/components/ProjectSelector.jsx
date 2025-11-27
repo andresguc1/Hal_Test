@@ -1,145 +1,165 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from "react";
 
 const ProjectSelector = ({
-    projects,
-    currentProject,
-    onSelectProject,
-    onCreateProject,
-    onDeleteProject
+  projects,
+  currentProject,
+  onSelectProject,
+  onCreateProject,
+  onDeleteProject,
 }) => {
-    const [isOpen, setIsOpen] = useState(false);
-    const dropdownRef = useRef(null);
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef(null);
 
-    useEffect(() => {
-        const handleClickOutside = (event) => {
-            if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-                setIsOpen(false);
-            }
-        };
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, []);
-
-    const handleCreate = () => {
-        const name = prompt("Nombre del nuevo proyecto:");
-        if (name) {
-            const description = prompt("Descripción (opcional):");
-            onCreateProject(name, description || "");
-            setIsOpen(false);
-        }
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
     };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
-    return (
-        <div className="project-selector" ref={dropdownRef} style={{ position: 'relative', marginLeft: '10px' }}>
+  const handleCreate = () => {
+    const name = prompt("Nombre del nuevo proyecto:");
+    if (name) {
+      const description = prompt("Descripción (opcional):");
+      onCreateProject(name, description || "");
+      setIsOpen(false);
+    }
+  };
+
+  return (
+    <div
+      className="project-selector"
+      ref={dropdownRef}
+      style={{ position: "relative", marginLeft: "10px" }}
+    >
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        style={{
+          background: "#2d2d2d",
+          border: "1px solid #444",
+          color: "white",
+          padding: "5px 10px",
+          borderRadius: "4px",
+          cursor: "pointer",
+          display: "flex",
+          alignItems: "center",
+          gap: "8px",
+          fontSize: "13px",
+        }}
+      >
+        <span style={{ fontWeight: "bold" }}>
+          {currentProject ? currentProject.name : "Seleccionar Proyecto"}
+        </span>
+        <span style={{ fontSize: "10px" }}>▼</span>
+      </button>
+
+      {isOpen && (
+        <div
+          style={{
+            position: "absolute",
+            top: "100%",
+            left: 0,
+            marginTop: "4px",
+            background: "#252526",
+            border: "1px solid #454545",
+            borderRadius: "4px",
+            boxShadow: "0 4px 6px rgba(0,0,0,0.3)",
+            zIndex: 1000,
+            minWidth: "200px",
+            maxHeight: "300px",
+            overflowY: "auto",
+          }}
+        >
+          <div style={{ padding: "8px", borderBottom: "1px solid #333" }}>
             <button
-                onClick={() => setIsOpen(!isOpen)}
-                style={{
-                    background: '#2d2d2d',
-                    border: '1px solid #444',
-                    color: 'white',
-                    padding: '5px 10px',
-                    borderRadius: '4px',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    fontSize: '13px'
-                }}
+              onClick={handleCreate}
+              style={{
+                width: "100%",
+                padding: "6px",
+                background: "#0e639c",
+                border: "none",
+                color: "white",
+                borderRadius: "3px",
+                cursor: "pointer",
+              }}
             >
-                <span style={{ fontWeight: 'bold' }}>
-                    {currentProject ? currentProject.name : "Seleccionar Proyecto"}
-                </span>
-                <span style={{ fontSize: '10px' }}>▼</span>
+              + Nuevo Proyecto
             </button>
+          </div>
 
-            {isOpen && (
-                <div style={{
-                    position: 'absolute',
-                    top: '100%',
-                    left: 0,
-                    marginTop: '4px',
-                    background: '#252526',
-                    border: '1px solid #454545',
-                    borderRadius: '4px',
-                    boxShadow: '0 4px 6px rgba(0,0,0,0.3)',
-                    zIndex: 1000,
-                    minWidth: '200px',
-                    maxHeight: '300px',
-                    overflowY: 'auto'
-                }}>
-                    <div style={{ padding: '8px', borderBottom: '1px solid #333' }}>
-                        <button
-                            onClick={handleCreate}
-                            style={{
-                                width: '100%',
-                                padding: '6px',
-                                background: '#0e639c',
-                                border: 'none',
-                                color: 'white',
-                                borderRadius: '3px',
-                                cursor: 'pointer'
-                            }}
-                        >
-                            + Nuevo Proyecto
-                        </button>
-                    </div>
-
-                    <div className="project-list">
-                        {projects.map(project => (
-                            <div
-                                key={project.id}
-                                onClick={() => {
-                                    onSelectProject(project.id);
-                                    setIsOpen(false);
-                                }}
-                                style={{
-                                    padding: '8px 12px',
-                                    cursor: 'pointer',
-                                    borderBottom: '1px solid #333',
-                                    background: currentProject?.id === project.id ? '#37373d' : 'transparent',
-                                    display: 'flex',
-                                    justifyContent: 'space-between',
-                                    alignItems: 'center'
-                                }}
-                                onMouseEnter={(e) => e.currentTarget.style.background = '#2a2d2e'}
-                                onMouseLeave={(e) => e.currentTarget.style.background = currentProject?.id === project.id ? '#37373d' : 'transparent'}
-                            >
-                                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                    <span style={{ color: 'white', fontSize: '13px' }}>{project.name}</span>
-                                    <span style={{ color: '#888', fontSize: '11px' }}>
-                                        {new Date(project.updatedAt).toLocaleDateString()}
-                                    </span>
-                                </div>
-
-                                {onDeleteProject && (
-                                    <button
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            if (window.confirm(`¿Eliminar proyecto "${project.name}"?`)) {
-                                                onDeleteProject(project.id);
-                                            }
-                                        }}
-                                        style={{
-                                            background: 'none',
-                                            border: 'none',
-                                            color: '#666',
-                                            cursor: 'pointer',
-                                            padding: '4px',
-                                            fontSize: '14px'
-                                        }}
-                                        onMouseEnter={(e) => e.target.style.color = '#ff4444'}
-                                        onMouseLeave={(e) => e.target.style.color = '#666'}
-                                    >
-                                        ×
-                                    </button>
-                                )}
-                            </div>
-                        ))}
-                    </div>
+          <div className="project-list">
+            {projects.map((project) => (
+              <div
+                key={project.id}
+                onClick={() => {
+                  onSelectProject(project.id);
+                  setIsOpen(false);
+                }}
+                style={{
+                  padding: "8px 12px",
+                  cursor: "pointer",
+                  borderBottom: "1px solid #333",
+                  background:
+                    currentProject?.id === project.id
+                      ? "#37373d"
+                      : "transparent",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                }}
+                onMouseEnter={(e) =>
+                  (e.currentTarget.style.background = "#2a2d2e")
+                }
+                onMouseLeave={(e) =>
+                  (e.currentTarget.style.background =
+                    currentProject?.id === project.id
+                      ? "#37373d"
+                      : "transparent")
+                }
+              >
+                <div style={{ display: "flex", flexDirection: "column" }}>
+                  <span style={{ color: "white", fontSize: "13px" }}>
+                    {project.name}
+                  </span>
+                  <span style={{ color: "#888", fontSize: "11px" }}>
+                    {new Date(project.updatedAt).toLocaleDateString()}
+                  </span>
                 </div>
-            )}
+
+                {onDeleteProject && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (
+                        window.confirm(`¿Eliminar proyecto "${project.name}"?`)
+                      ) {
+                        onDeleteProject(project.id);
+                      }
+                    }}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      color: "#666",
+                      cursor: "pointer",
+                      padding: "4px",
+                      fontSize: "14px",
+                    }}
+                    onMouseEnter={(e) => (e.target.style.color = "#ff4444")}
+                    onMouseLeave={(e) => (e.target.style.color = "#666")}
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
         </div>
-    );
+      )}
+    </div>
+  );
 };
 
 export default ProjectSelector;

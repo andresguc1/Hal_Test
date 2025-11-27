@@ -74,13 +74,13 @@ export const NODE_CATEGORIES = {
  * These nodes produce significant visual changes and should always capture
  */
 export const VISUAL_CHANGE_NODES = new Set([
-  'open_url',
-  'click',
-  'type_text',
-  'submit_form',
-  'drag_drop',
-  'upload_file',
-  'scroll'
+  "open_url",
+  "click",
+  "type_text",
+  "submit_form",
+  "drag_drop",
+  "upload_file",
+  "scroll",
 ]);
 
 /**
@@ -89,33 +89,53 @@ export const VISUAL_CHANGE_NODES = new Set([
  */
 export const SCREENSHOT_RECOMMENDATIONS = {
   // High priority - Visual changes (automatic capture)
-  'open_url': { priority: 'high', delay: { after: 1000 } },
-  'click': { priority: 'high', delay: { after: 500 } },
-  'type_text': { priority: 'high', delay: { after: 200 } },
-  'submit_form': { priority: 'high', delay: { after: 1500 } },
-  'drag_drop': { priority: 'high', delay: { after: 300 } },
-  'upload_file': { priority: 'high', delay: { after: 500 } },
-  'scroll': { priority: 'high', delay: { after: 300 } },
+  open_url: { priority: "high", delay: { after: 1000 } },
+  click: { priority: "high", delay: { after: 500 } },
+  type_text: { priority: "high", delay: { after: 200 } },
+  submit_form: { priority: "high", delay: { after: 1500 } },
+  drag_drop: { priority: "high", delay: { after: 300 } },
+  upload_file: { priority: "high", delay: { after: 500 } },
+  scroll: { priority: "high", delay: { after: 300 } },
 
   // Medium priority - May cause visual changes
-  'select_option': { priority: 'medium', delay: { after: 200 } },
-  'execute_script': { priority: 'medium', delay: { after: 300 } },
-  'hover': { priority: 'medium', delay: { after: 200 } },
+  select_option: { priority: "medium", delay: { after: 200 } },
+  execute_script: { priority: "medium", delay: { after: 300 } },
+  hover: { priority: "medium", delay: { after: 200 } },
 
   // Medium priority - Conditional changes
 
-  'go_back': { defaultTiming: 'both', priority: 'medium', delay: { before: 0, after: 800 } },
-  'go_forward': { defaultTiming: 'both', priority: 'medium', delay: { before: 0, after: 800 } },
-  'refresh': { defaultTiming: 'both', priority: 'medium', delay: { before: 0, after: 1000 } },
-  'manage_tabs': { defaultTiming: 'after', priority: 'medium', delay: { before: 0, after: 500 } },
+  go_back: {
+    defaultTiming: "both",
+    priority: "medium",
+    delay: { before: 0, after: 800 },
+  },
+  go_forward: {
+    defaultTiming: "both",
+    priority: "medium",
+    delay: { before: 0, after: 800 },
+  },
+  refresh: {
+    defaultTiming: "both",
+    priority: "medium",
+    delay: { before: 0, after: 1000 },
+  },
+  manage_tabs: {
+    defaultTiming: "after",
+    priority: "medium",
+    delay: { before: 0, after: 500 },
+  },
 
   // Low priority - No visual changes
-  'launch_browser': { defaultTiming: null, priority: 'low', enabled: false },
-  'close_browser': { defaultTiming: null, priority: 'low', enabled: false },
-  'resize_viewport': { defaultTiming: 'after', priority: 'low', delay: { before: 0, after: 200 } },
-  'find_element': { defaultTiming: null, priority: 'low', enabled: false },
-  'wait_conditional': { defaultTiming: null, priority: 'low', enabled: false },
-  'extract_text': { defaultTiming: null, priority: 'low', enabled: false },
+  launch_browser: { defaultTiming: null, priority: "low", enabled: false },
+  close_browser: { defaultTiming: null, priority: "low", enabled: false },
+  resize_viewport: {
+    defaultTiming: "after",
+    priority: "low",
+    delay: { before: 0, after: 200 },
+  },
+  find_element: { defaultTiming: null, priority: "low", enabled: false },
+  wait_conditional: { defaultTiming: null, priority: "low", enabled: false },
+  extract_text: { defaultTiming: null, priority: "low", enabled: false },
 };
 
 /**

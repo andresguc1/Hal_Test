@@ -223,3 +223,61 @@ export function deepClone(obj) {
     return obj;
   }
 }
+
+/**
+ * Identifies connected components (independent flows) in the graph.
+ * Uses BFS to traverse the graph and group connected nodes.
+ *
+ * @param {Array} nodes - List of all nodes
+ * @param {Array} edges - List of all edges
+ * @returns {Array<Array>} Array of node arrays, where each inner array represents a connected component
+ */
+export function getConnectedComponents(nodes, edges) {
+  if (!nodes || nodes.length === 0) return [];
+
+  const visited = new Set();
+  const components = [];
+  const nodeMap = new Map(nodes.map((n) => [n.id, n]));
+
+  // Build adjacency list (undirected for component detection)
+  const adj = new Map();
+  nodes.forEach((n) => adj.set(n.id, []));
+
+  edges.forEach((e) => {
+    if (adj.has(e.source) && adj.has(e.target)) {
+      adj.get(e.source).push(e.target);
+      adj.get(e.target).push(e.source);
+    }
+  });
+
+  // Iterate through all nodes to find components
+  nodes.forEach((node) => {
+    if (!visited.has(node.id)) {
+      const component = [];
+      const queue = [node.id];
+      visited.add(node.id);
+
+      while (queue.length > 0) {
+        const currentId = queue.shift();
+        const currentNode = nodeMap.get(currentId);
+        if (currentNode) {
+          component.push(currentNode);
+        }
+
+        const neighbors = adj.get(currentId) || [];
+        neighbors.forEach((neighborId) => {
+          if (!visited.has(neighborId)) {
+            visited.add(neighborId);
+            queue.push(neighborId);
+          }
+        });
+      }
+
+      if (component.length > 0) {
+        components.push(component);
+      }
+    }
+  });
+
+  return components;
+}

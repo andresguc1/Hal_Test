@@ -43,7 +43,7 @@ export default function App() {
     createFlow,
     switchFlow,
     deleteFlow,
-    renameFlow
+    renameFlow,
   } = useProjectManager();
 
   // Migration Effect
@@ -118,7 +118,7 @@ export default function App() {
     selectedAction,
     setSelectedAction,
     setNodes,
-    addNode
+    addNode,
   } = useFlowManager(currentProject, currentFlowId);
 
   // Computed values
