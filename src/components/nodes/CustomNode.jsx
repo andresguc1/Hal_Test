@@ -6,7 +6,8 @@
 import React, { memo } from "react";
 import { Handle, Position } from "reactflow";
 import { Play, CheckCircle, XCircle, Clock } from "lucide-react";
-import { NODE_STATES, PROFESSIONAL_COLORS } from "../hooks/flowStyles";
+import { NODE_STATES, PROFESSIONAL_COLORS, CATEGORY_COLORS } from "../hooks/flowStyles";
+import { NODE_TYPE_TO_CATEGORY } from "../hooks/constants";
 import "./CustomNode.css";
 
 /**
@@ -36,39 +37,76 @@ function CustomNode({ data, selected }) {
     }
   };
 
+  // Determine category color
+  const categoryKey = NODE_TYPE_TO_CATEGORY[data?.type] || 'default';
+  const categoryColor = CATEGORY_COLORS[categoryKey] || CATEGORY_COLORS.default;
+
+  // Define state colors for 3D effect
+  const stateColors = {
+    [NODE_STATES.DEFAULT]: { border: colors.border, shadow: '#94a3b8' }, // Slate-400
+    [NODE_STATES.EXECUTING]: { border: '#eab308', shadow: '#ca8a04' }, // Yellow-500/600
+    [NODE_STATES.SUCCESS]: { border: '#22c55e', shadow: '#15803d' }, // Green-500/700
+    [NODE_STATES.ERROR]: { border: '#ef4444', shadow: '#b91c1c' }, // Red-500/700
+    [NODE_STATES.SKIPPED]: { border: '#64748b', shadow: '#475569' }, // Slate-500/600
+  };
+
+  const currentStateColor = stateColors[state] || stateColors[NODE_STATES.DEFAULT];
+  const borderColor = selected ? colors.selectedBorder : currentStateColor.border;
+  const shadowColor = selected ? colors.selectedBorder : currentStateColor.shadow;
+
   const nodeStyle = {
     background: colors.background,
-    border: `2px solid ${selected ? colors.selectedBorder : colors.border}`,
+    border: `2px solid ${borderColor}`,
+    borderLeft: `6px solid ${categoryColor}`, // Category accent
     color: colors.text,
-    padding: "10px 12px", // Reduced from 12px 16px
-    borderRadius: "8px",
-    minWidth: "140px", // Reduced from 180px
-    width: "160px", // Reduced from 200px
-    height: "auto",
-    boxShadow: selected
-      ? `0 0 0 2px ${colors.selectedBorder}40`
-      : "0 2px 4px rgba(0,0,0,0.1)",
-    transition: "all 0.2s ease",
+    padding: "0 12px 0 8px", // Adjusted padding for left border
+    borderRadius: "12px", // Slightly more rounded for button look
+    width: "240px", // Increased width for better visibility
+    height: "50px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    // 3D Shadow Effect: 0 offset x, 4px offset y, 0 blur, solid color
+    boxShadow: `0 4px 0 ${shadowColor}`,
+    transform: "translateY(0)", // Reset transform
     cursor: "pointer",
+    overflow: "visible", // Allow shadow to be seen
+    marginBottom: "4px", // Compensate for shadow
+  };
+
+  const contentContainerStyle = {
+    display: "flex",
+    alignItems: "center",
+    gap: "10px",
+    flex: 1,
+    overflow: "hidden",
+    margin: "0 8px",
   };
 
   const labelStyle = {
     fontSize: "14px",
-    fontWeight: 500,
-    marginBottom: data?.description ? "4px" : 0,
-    display: "flex",
-    alignItems: "center",
-    gap: "8px",
+    fontWeight: 600, // Bolder text
+    whiteSpace: "nowrap",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    flex: 1,
   };
 
-  const descriptionStyle = {
-    fontSize: "12px",
-    opacity: 0.8,
-    marginTop: "4px",
+  // Helper to tint icon
+  const getIconWithColor = () => {
+    const icon = getIcon();
+    if (React.isValidElement(icon)) {
+      return React.cloneElement(icon, { color: categoryColor, size: 20 });
+    }
+    return icon;
   };
+
+  // Description hidden in fixed mode to maintain size, or could be a subtitle
+  // For now, we'll hide it or make it very subtle if it fits, but standardizing usually implies removing variable height elements.
+  // We will rely on the tooltip for full details.
 
   return (
-    <div style={nodeStyle} className="custom-node">
+    <div style={nodeStyle} className="custom-node" title={data?.label + (data?.description ? `\n${data.description}` : "")}>
       {/* Input Handle - Left */}
       <Handle
         type="target"
@@ -82,20 +120,22 @@ function CustomNode({ data, selected }) {
       />
 
       {/* Node Content */}
-      <div style={labelStyle}>
-        {getIcon()}
-        <span>{data?.label || "Node"}</span>
+      <div style={contentContainerStyle}>
+        {getIconWithColor()}
+        <span style={labelStyle}>{data?.label || "Node"}</span>
       </div>
 
-      {data?.description && (
-        <div style={descriptionStyle}>{data.description}</div>
-      )}
-
-      {/* Error message if any */}
-      {state === NODE_STATES.ERROR && data?.error && (
-        <div style={{ fontSize: "11px", color: "#ff6b6b", marginTop: "4px" }}>
-          {data.error}
-        </div>
+      {/* Error indicator (small dot or border change instead of text to keep size) */}
+      {state === NODE_STATES.ERROR && (
+        <div style={{
+          position: 'absolute',
+          top: 4,
+          right: 4,
+          width: 8,
+          height: 8,
+          borderRadius: '50%',
+          background: '#ff6b6b'
+        }} />
       )}
 
       {/* Output Handle - Right */}

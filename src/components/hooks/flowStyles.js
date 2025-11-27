@@ -114,3 +114,22 @@ Para la animación de 'EXECUTING', necesitarás el siguiente CSS global:
   100% { transform: scale(1); opacity: 1; }
 }
 */
+
+/**
+ * Category colors for visual differentiation.
+ * These are used as accents (left border strip) on the nodes.
+ */
+export const CATEGORY_COLORS = {
+  browser_management: '#3b82f6', // Blue
+  dom_manipulation: '#8b5cf6',   // Purple
+  user_simulation: '#f97316',    // Orange
+  synchronization: '#06b6d4',    // Cyan
+  diagnostics: '#ec4899',        // Pink
+  network_control: '#64748b',    // Slate
+  session_management: '#6366f1', // Indigo
+  test_execution: '#ef4444',     // Red
+  file_data: '#10b981',          // Emerald
+  llm_ai: '#7c3aed',             // Violet
+  execution_interface: '#71717a',// Zinc
+  default: '#94a3b8'             // Gray
+};

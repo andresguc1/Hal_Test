@@ -2689,3 +2689,78 @@ export const STORAGE_KEYS = {
   RECENT_FLOWS: "browserflow_recent",
   USER_PREFERENCES: "browserflow_preferences",
 };
+/**
+ * Mapping of node types to their category key.
+ * Used to determine the category color for each node.
+ */
+export const NODE_TYPE_TO_CATEGORY = {
+  // Browser Management
+  launch_browser: 'browser_management',
+  open_url: 'browser_management',
+  close_browser: 'browser_management',
+  manage_tabs: 'browser_management',
+  resize_viewport: 'browser_management',
+  go_back: 'browser_management',
+  go_forward: 'browser_management',
+
+  // DOM Manipulation
+  find_element: 'dom_manipulation',
+  get_set_content: 'dom_manipulation',
+  wait_for_element: 'dom_manipulation',
+  execute_js: 'dom_manipulation',
+
+  // User Simulation
+  click: 'user_simulation',
+  type_text: 'user_simulation',
+  select_option: 'user_simulation',
+  submit_form: 'user_simulation',
+  scroll: 'user_simulation',
+  drag_drop: 'user_simulation',
+  upload_file: 'user_simulation',
+
+  // Synchronization
+  wait_visible: 'synchronization',
+  wait_navigation: 'synchronization',
+  wait_network: 'synchronization',
+  wait_conditional: 'synchronization',
+
+  // Diagnostics
+  take_screenshot: 'diagnostics',
+  save_dom: 'diagnostics',
+  log_errors: 'diagnostics',
+  listen_events: 'diagnostics',
+
+  // Network Control
+  intercept_request: 'network_control',
+  mock_response: 'network_control',
+  block_resource: 'network_control',
+  modify_headers: 'network_control',
+
+  // Session Management
+  manage_cookies: 'session_management',
+  manage_storage: 'session_management',
+  inject_tokens: 'session_management',
+  persist_session: 'session_management',
+
+  // Test Execution
+  create_context: 'test_execution',
+  cleanup_state: 'test_execution',
+  handle_hooks: 'test_execution',
+  control_exceptions: 'test_execution',
+
+  // File Data
+  read_data: 'file_data',
+  save_results: 'file_data',
+  handle_downloads: 'file_data',
+
+  // LLM AI
+  call_llm: 'llm_ai',
+  generate_data: 'llm_ai',
+  validate_semantic: 'llm_ai',
+
+  // Execution Interface
+  run_tests: 'execution_interface',
+  cli_params: 'execution_interface',
+  return_code: 'execution_interface',
+  integrate_ci: 'execution_interface',
+};

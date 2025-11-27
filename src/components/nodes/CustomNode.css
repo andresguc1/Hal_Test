@@ -2,6 +2,16 @@
 
 .custom-node {
   position: relative;
+  transition:
+    transform 0.1s ease,
+    box-shadow 0.1s ease;
+}
+
+/* 3D Click Animation */
+.custom-node:active {
+  transform: translateY(4px) !important;
+  box-shadow: 0 0 0 0 !important;
+  /* Shadow collapses */
 }
 
 .node-icon {

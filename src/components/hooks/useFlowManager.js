@@ -772,7 +772,7 @@ export const useFlowManager = (currentProject, currentFlowId) => {
                   configuration: newConfig,
                   executed: true,
                   state: NODE_STATES.SUCCESS,
-                  label: createExecutedLabel({ type, payload: newConfig }),
+                  // label: createExecutedLabel({ type, payload: newConfig }), // DISABLED: Keep original label
                   executionTime: duration,
                   result: result,
                 },
