@@ -65,7 +65,9 @@ function CustomNode({ data, selected }) {
 
   const nodeStyle = {
     background: colors.background,
-    border: `2px solid ${borderColor}`,
+    borderTop: `2px solid ${borderColor}`,
+    borderRight: `2px solid ${borderColor}`,
+    borderBottom: `2px solid ${borderColor}`,
     borderLeft: `6px solid ${categoryColor}`, // Category accent
     color: colors.text,
     padding: "0 12px 0 8px", // Adjusted padding for left border
