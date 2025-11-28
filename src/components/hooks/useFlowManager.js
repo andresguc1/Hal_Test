@@ -720,8 +720,23 @@ export const useFlowManager = (currentProject, currentFlowId) => {
               // Ignorar error de parsing
             }
 
-            const serverMsg =
-              (errData && errData.message) || text || response.statusText;
+            let serverMsg = (errData && errData.message) || text || response.statusText;
+
+            // If serverMsg contains HTML, extract text content
+            if (typeof serverMsg === 'string' && serverMsg.includes('<!DOCTYPE')) {
+              try {
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(serverMsg, 'text/html');
+                const bodyText = doc.body?.textContent?.trim();
+                if (bodyText && bodyText.length > 0) {
+                  serverMsg = bodyText;
+                } else {
+                  serverMsg = `Error ${response.status}: ${response.statusText}`;
+                }
+              } catch {
+                serverMsg = `Error ${response.status}: ${response.statusText}`;
+              }
+            }
 
             const shouldRetry =
               response.status >= 500 && attempt < MAX_RETRIES - 1;

@@ -104,8 +104,22 @@ export const launch_browser = (payload) => {
 };
 
 export const open_url = (payload) => {
+  const url = asString(payload?.url);
+
+  // Validate URL is not empty
+  if (!url || url.trim() === "") {
+    throw new Error("La URL es requerida para abrir una página.");
+  }
+
+  // Validate URL format
+  try {
+    new URL(url);
+  } catch {
+    throw new Error("URL inválida. Debe incluir http:// o https://");
+  }
+
   return {
-    url: asString(payload?.url),
+    url: url,
     waitUntil: asString(payload?.waitUntil, "load"),
     timeout: asNumber(payload?.timeout, 30000),
     browserId: asString(payload?.browserId),

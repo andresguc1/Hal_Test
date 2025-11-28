@@ -118,7 +118,15 @@ function NodeConfigurationPanel({
 
     if (fields.length === 0) {
       if (action?.type === "open_url") {
-        if (!formData.url) newErrors.url = "URL requerida";
+        if (!formData.url || formData.url.trim() === "") {
+          newErrors.url = "URL requerida";
+        } else {
+          try {
+            new URL(formData.url);
+          } catch {
+            newErrors.url = "URL inválida. Debe incluir http:// o https://";
+          }
+        }
       }
     } else {
       fields.forEach((field) => {
@@ -195,8 +203,13 @@ function NodeConfigurationPanel({
         maximizeWindow: !!formData.maximizeWindow, // Nuevo campo
       };
     } else if (action.type === "open_url") {
+      // Additional validation for open_url
+      if (!formData.url || formData.url.trim() === "") {
+        alert("La URL es requerida para abrir una página.");
+        return;
+      }
       payload = {
-        url: formData.url,
+        url: formData.url.trim(),
         waitUntil: formData.waitUntil ?? "domcontentloaded",
         timeout: Number(formData.timeout) || 20000,
         browserId: formData.browserId ?? "",
@@ -586,7 +599,10 @@ function NodeConfigurationPanel({
         return (
           <>
             <div className="field-group">
-              <label>URL</label>
+              <label>
+                URL
+                <span className="required">*</span>
+              </label>
               <input
                 type="text"
                 name="url"
@@ -594,7 +610,13 @@ function NodeConfigurationPanel({
                 onChange={handleChange}
                 placeholder="https://www.google.com"
                 required
+                className={errors.url ? "input-error" : ""}
               />
+              {errors.url && (
+                <span className="field-error">
+                  <AlertCircle size={14} /> {errors.url}
+                </span>
+              )}
             </div>
 
             <div className="field-group">
@@ -755,7 +777,20 @@ function NodeConfigurationPanel({
             <AlertCircle size={20} />
             <span>Error de Ejecución</span>
           </div>
-          <div className="error-message">{action.data.error}</div>
+          <div className="error-message">
+            {(() => {
+              const errorMsg = action.data.error;
+              // If error contains HTML, try to extract text content
+              if (typeof errorMsg === 'string' && errorMsg.includes('<!DOCTYPE')) {
+                // Parse HTML and extract meaningful error
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(errorMsg, 'text/html');
+                const bodyText = doc.body?.textContent?.trim() || 'Error del servidor';
+                return bodyText || 'Error desconocido del servidor';
+              }
+              return errorMsg;
+            })()}
+          </div>
         </div>
       )}
 
