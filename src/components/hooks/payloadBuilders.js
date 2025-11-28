@@ -99,6 +99,7 @@ export const launch_browser = (payload) => {
     headless: asBoolean(payload?.headless, true),
     slowMo: asNumber(payload?.slowMo, 0, 0),
     args: asString(payload?.args, ""),
+    maximizeWindow: asBoolean(payload?.maximizeWindow, false),
   };
 };
 

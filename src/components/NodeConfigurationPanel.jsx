@@ -68,7 +68,9 @@ function NodeConfigurationPanel({
     if (fields.length === 0) {
       initialData.browserType = currentData.browserType ?? "chromium";
       initialData.headless =
-        typeof currentData.headless === "boolean" ? currentData.headless : true;
+        typeof currentData.headless === "boolean"
+          ? currentData.headless
+          : false;
       initialData.slowMo = currentData.slowMo ?? 0;
       initialData.args = Array.isArray(currentData.args)
         ? currentData.args.join(" ")
@@ -76,6 +78,7 @@ function NodeConfigurationPanel({
       initialData.endpoint = currentData.endpoint ?? "";
       initialData.browserId =
         currentData.browserId ?? currentData.instanceId ?? "";
+      initialData.maximizeWindow = !!currentData.maximizeWindow;
     } else {
       fields.forEach((field) => {
         let value = currentData[field.name];
@@ -189,6 +192,7 @@ function NodeConfigurationPanel({
         headless: !!formData.headless,
         slowMo: Number(formData.slowMo) || 0,
         args: formData.args ?? "",
+        maximizeWindow: !!formData.maximizeWindow, // Nuevo campo
       };
     } else if (action.type === "open_url") {
       payload = {
@@ -527,8 +531,19 @@ function NodeConfigurationPanel({
                   name="headless"
                   checked={!!formData.headless}
                   onChange={handleChange}
-                />{" "}
-                <span>Headless</span>
+                />
+                Headless (Invisible)
+              </label>
+            </div>
+            <div className="field-group checkbox-field">
+              <label className="checkbox-label">
+                <input
+                  type="checkbox"
+                  name="maximizeWindow"
+                  checked={!!formData.maximizeWindow}
+                  onChange={handleChange}
+                />
+                Iniciar en modo maximizado
               </label>
             </div>
             <div className="field-group">

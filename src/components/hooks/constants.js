@@ -2473,7 +2473,6 @@ export const NODE_FIELD_CONFIGS = {
       options: [
         { value: "chromium", label: "Chromium" },
         { value: "firefox", label: "Firefox" },
-        { value: "webkit", label: "WebKit (Safari)" },
       ],
       defaultValue: "chromium",
       required: true,
@@ -2482,7 +2481,13 @@ export const NODE_FIELD_CONFIGS = {
       name: "headless",
       label: "Modo headless (sin interfaz)",
       type: "checkbox",
-      defaultValue: true, // Cambiado a 'true' como valor predeterminado común en automatización
+      defaultValue: false,
+    },
+    {
+      name: "maximizeWindow",
+      label: "Iniciar en modo maximizado",
+      type: "checkbox",
+      defaultValue: false,
     },
     {
       name: "slowMo",
