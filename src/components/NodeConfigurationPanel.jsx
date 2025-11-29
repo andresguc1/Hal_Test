@@ -679,19 +679,20 @@ function NodeConfigurationPanel({
               </select>
             </div>
 
-            {/* Campo: url (URL) - Condicionalmente requerido para 'new' */}
-            {/* Ocultamos si la acción es 'list' */}
-            {formData.action !== "list" && (
+            {/* Campo: url (URL) - Solo visible para 'new' */}
+            {formData.action === "new" && (
               <div className="field-group">
-                <label>URL (obligatoria solo para new)</label>
+                <label>
+                  URL (opcional)
+                  <span className="required">*</span>
+                </label>
                 <input
                   type="text"
                   name="url"
                   value={formData.url ?? ""}
                   onChange={handleChange}
                   placeholder="https://www.google.com"
-                  // Requerido si la acción es 'new'
-                  required={formData.action === "new"}
+                  required
                 />
               </div>
             )}
@@ -793,6 +794,30 @@ function NodeConfigurationPanel({
           </div>
         </div>
       )}
+
+      {/* Tab List Display - For manage_tabs with action=list */}
+      {action?.type === "manage_tabs" &&
+        action?.data?.configuration?.action === "list" &&
+        action?.data?.result?.data?.tabs && (
+          <div className="tab-list-display">
+            <div className="tab-list-header">
+              <span>📑 Lista de Pestañas ({action.data.result.data.tabs.length})</span>
+            </div>
+            <div className="tab-list-content">
+              {action.data.result.data.tabs.map((tab, index) => (
+                <div key={index} className={`tab-item ${tab.active ? 'active' : ''}`}>
+                  <div className="tab-index">#{index}</div>
+                  <div className="tab-info">
+                    <div className="tab-url" title={tab.url}>
+                      {tab.url || 'about:blank'}
+                    </div>
+                    {tab.active && <span className="tab-badge">Activa</span>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
       {/* Screenshot Viewer - Only for visual-change nodes */}
       {VISUAL_CHANGE_NODES.has(action?.type) && (

@@ -81,6 +81,7 @@ export const VISUAL_CHANGE_NODES = new Set([
   "drag_drop",
   "upload_file",
   "scroll",
+  "manage_tabs", // Captura screenshot para mostrar el resultado de la gestión de pestañas
 ]);
 
 /**
@@ -2515,74 +2516,11 @@ export const NODE_FIELD_CONFIGS = {
     // Se podrían añadir más como 'timeout', 'devtools', o 'downloadsPath' si son necesarios.
   ],
 
-  // dentro de NODE_FIELD_CONFIGS en constants.js
-  manage_tabs: [
-    {
-      name: "action",
-      label: "Acción",
-      type: "select",
-      required: true,
-      defaultValue: "new",
-      options: [
-        { value: "new", label: "new" },
-        { value: "switch", label: "switch" },
-        { value: "close", label: "close" },
-        { value: "list", label: "list" }, // AÑADIDO: Acción 'list'
-      ],
-      validation: (v) => {
-        if (!v) return "Acción requerida";
-        // AJUSTADO: Se incluye 'list'
-        if (!["new", "switch", "close", "list"].includes(v))
-          return "Acción inválida";
-        return null;
-      },
-    },
-    {
-      // AÑADIDO: Configuración para el nuevo campo tabIndex
-      name: "tabIndex",
-      label: "Índice de Pestaña (tabIndex)",
-      type: "number",
-      placeholder: "0",
-      defaultValue: 0,
-      validation: (v, form) => {
-        // AJUSTADO: Requerido si la acción es 'switch' o 'close'
-        if (form.action === "switch" || form.action === "close") {
-          if (v === undefined || v === null || v === "") {
-            return "El índice de la pestaña es obligatorio para 'switch' y 'close'.";
-          }
-          if (!Number.isInteger(Number(v)) || Number(v) < 0) {
-            return "El índice debe ser un número entero mayor o igual a 0.";
-          }
-        }
-        return null;
-      },
-    },
-    {
-      name: "url",
-      label: "URL (obligatoria para action=new)",
-      type: "text",
-      placeholder: "https://www.google.com",
-      defaultValue: "",
-      validation: (v, form) => {
-        if (form.action === "new") {
-          try {
-            // Se valida que sea una URL válida
-            new URL(v);
-            return null;
-          } catch {
-            return "URL inválida o vacía para action=new";
-          }
-        }
-        return null;
-      },
-    },
-    {
-      name: "endpoint",
-      label: "Endpoint (opcional)",
-      type: "text",
-      placeholder: "http://localhost:2001/api/actions/manage-tabs",
-    },
-  ],
+  // manage_tabs: Usa UI personalizada en NodeConfigurationPanel.jsx (líneas 661-729)
+  // No se definen campos aquí para evitar renderizado duplicado y permitir
+  // control total sobre la visibilidad condicional de campos según la acción seleccionada
+  manage_tabs: [],
+
 
   hover: [
     {
