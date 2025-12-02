@@ -22,6 +22,7 @@ export const NODE_LABELS = {
   find_element: "Buscar Elemento",
   click: "Click",
   type_text: "Escribir Texto",
+  select_option: "Seleccionar opciones",
   scroll: "Desplazar/Scroll",
   hover: "Pasar mouse sobre elemento",
 
@@ -49,7 +50,14 @@ export const NODE_CATEGORIES = {
   interaction: {
     label: "Interacción",
     icon: "👆",
-    nodes: ["click", "type_text", "scroll", "hover", "find_element"],
+    nodes: [
+      "click",
+      "type_text",
+      "select_option",
+      "scroll",
+      "hover",
+      "find_element",
+    ],
   },
   utilities: {
     label: "Utilidades",
@@ -82,6 +90,7 @@ export const VISUAL_CHANGE_NODES = new Set([
   "upload_file",
   "scroll",
   "manage_tabs", // Captura screenshot para mostrar el resultado de la gestión de pestañas
+  "select_option",
 ]);
 
 /**
@@ -2521,7 +2530,6 @@ export const NODE_FIELD_CONFIGS = {
   // control total sobre la visibilidad condicional de campos según la acción seleccionada
   manage_tabs: [],
 
-
   hover: [
     {
       name: "selector",
@@ -2612,7 +2620,7 @@ export const REACTFLOW_CONFIG = {
   nodeOrigin: [0.5, 0.5],
   minZoom: 0.1,
   maxZoom: 2,
-  defaultViewport: { x: 0, y: 0, zoom: 1 },
+  defaultViewport: { x: 0, y: 0, zoom: 0.6 }, // Zoomed out to see more nodes
 };
 
 /**

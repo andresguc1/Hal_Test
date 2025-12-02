@@ -782,12 +782,16 @@ function NodeConfigurationPanel({
             {(() => {
               const errorMsg = action.data.error;
               // If error contains HTML, try to extract text content
-              if (typeof errorMsg === 'string' && errorMsg.includes('<!DOCTYPE')) {
+              if (
+                typeof errorMsg === "string" &&
+                errorMsg.includes("<!DOCTYPE")
+              ) {
                 // Parse HTML and extract meaningful error
                 const parser = new DOMParser();
-                const doc = parser.parseFromString(errorMsg, 'text/html');
-                const bodyText = doc.body?.textContent?.trim() || 'Error del servidor';
-                return bodyText || 'Error desconocido del servidor';
+                const doc = parser.parseFromString(errorMsg, "text/html");
+                const bodyText =
+                  doc.body?.textContent?.trim() || "Error del servidor";
+                return bodyText || "Error desconocido del servidor";
               }
               return errorMsg;
             })()}
@@ -801,15 +805,20 @@ function NodeConfigurationPanel({
         action?.data?.result?.data?.tabs && (
           <div className="tab-list-display">
             <div className="tab-list-header">
-              <span>📑 Lista de Pestañas ({action.data.result.data.tabs.length})</span>
+              <span>
+                📑 Lista de Pestañas ({action.data.result.data.tabs.length})
+              </span>
             </div>
             <div className="tab-list-content">
               {action.data.result.data.tabs.map((tab, index) => (
-                <div key={index} className={`tab-item ${tab.active ? 'active' : ''}`}>
+                <div
+                  key={index}
+                  className={`tab-item ${tab.active ? "active" : ""}`}
+                >
                   <div className="tab-index">#{index}</div>
                   <div className="tab-info">
                     <div className="tab-url" title={tab.url}>
-                      {tab.url || 'about:blank'}
+                      {tab.url || "about:blank"}
                     </div>
                     {tab.active && <span className="tab-badge">Activa</span>}
                   </div>

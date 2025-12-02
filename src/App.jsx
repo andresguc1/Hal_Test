@@ -291,8 +291,8 @@ export default function App() {
     () => ({
       // Disable automatic fitView on mount – we will control zoom ourselves
       fitView: false,
-      // Sensible defaults for the first node
-      defaultViewport: { x: 0, y: 0, zoom: 1 },
+      // Sensible defaults with zoomed out view to see more nodes
+      defaultViewport: { x: 0, y: 0, zoom: 0.6 },
       snapToGrid: true,
       snapGrid: [15, 15],
       style: { backgroundColor: colors.deepSpace },

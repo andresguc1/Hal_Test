@@ -70,10 +70,10 @@ function CustomNode({ data, selected }) {
     borderBottom: `2px solid ${borderColor}`,
     borderLeft: `6px solid ${categoryColor}`, // Category accent
     color: colors.text,
-    padding: "0 12px 0 8px", // Adjusted padding for left border
-    borderRadius: "12px", // Slightly more rounded for button look
-    width: "240px", // Increased width for better visibility
-    height: "50px",
+    padding: "0 10px 0 6px", // Reduced padding for compact size
+    borderRadius: "10px", // Slightly more rounded for button look
+    width: "180px", // Reduced width for more compact nodes
+    height: "60px", // Increased height for more square shape
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
@@ -88,14 +88,14 @@ function CustomNode({ data, selected }) {
   const contentContainerStyle = {
     display: "flex",
     alignItems: "center",
-    gap: "10px",
+    gap: "8px", // Reduced gap for compact layout
     flex: 1,
     overflow: "hidden",
-    margin: "0 8px",
+    margin: "0 6px", // Reduced margin
   };
 
   const labelStyle = {
-    fontSize: "14px",
+    fontSize: "13px", // Slightly smaller font for compact nodes
     fontWeight: 600, // Bolder text
     whiteSpace: "nowrap",
     overflow: "hidden",
@@ -107,7 +107,7 @@ function CustomNode({ data, selected }) {
   const getIconWithColor = () => {
     const icon = getIcon();
     if (React.isValidElement(icon)) {
-      return React.cloneElement(icon, { color: categoryColor, size: 20 });
+      return React.cloneElement(icon, { color: categoryColor, size: 18 });
     }
     return icon;
   };

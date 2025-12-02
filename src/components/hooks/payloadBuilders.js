@@ -346,6 +346,7 @@ export const select_option = (payload) => {
     selector: asString(payload?.selector),
     selectionCriteria: asString(payload?.selectionCriteria, "label"),
     selectionValue: asString(payload?.selectionValue),
+    timeout: asNumber(payload?.timeout, 30000, 1),
     browserId: asString(payload?.browserId),
   };
 };
