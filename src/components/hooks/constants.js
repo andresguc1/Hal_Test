@@ -23,7 +23,7 @@ export const NODE_LABELS = {
   click: "Click",
   type_text: "Escribir Texto",
   select_option: "Seleccionar opciones",
-  scroll: "Desplazar/Scroll",
+  scroll: "Desplazar",
   hover: "Pasar mouse sobre elemento",
 
   // Utilidades
