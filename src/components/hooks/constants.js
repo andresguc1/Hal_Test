@@ -20,17 +20,22 @@ export const NODE_LABELS = {
 
   // Interacción con elementos
   find_element: "Buscar Elemento",
+  get_set_content: "Modificar Texto/Attr",
   click: "Click",
   type_text: "Escribir Texto",
   select_option: "Seleccionar opciones",
   scroll: "Desplazar",
   hover: "Pasar mouse sobre elemento",
+  drag_drop: "Arrastrar",
+  upload_file: "Subir Archivos",
 
   // Utilidades
   wait_conditional: "Esperar (Delay)",
   take_screenshot: "Captura de Pantalla",
   extract_text: "Extraer texto",
   execute_script: "Ejecutar JavaScript",
+  execute_js: "Ejecutar JavaScript",
+  wait_for_element: "Esperar Elemento",
 };
 
 /**
@@ -85,12 +90,14 @@ export const VISUAL_CHANGE_NODES = new Set([
   "open_url",
   "click",
   "type_text",
+  "get_set_content", // Captura screenshot en operaciones SET para validar cambios visuales
   "submit_form",
   "drag_drop",
   "upload_file",
   "scroll",
   "manage_tabs", // Captura screenshot para mostrar el resultado de la gestión de pestañas
   "select_option",
+  "wait_for_element",
 ]);
 
 /**
@@ -102,6 +109,7 @@ export const SCREENSHOT_RECOMMENDATIONS = {
   open_url: { priority: "high", delay: { after: 1000 } },
   click: { priority: "high", delay: { after: 500 } },
   type_text: { priority: "high", delay: { after: 200 } },
+  wait_for_element: { priority: "high", delay: { after: 500 } },
   submit_form: { priority: "high", delay: { after: 1500 } },
   drag_drop: { priority: "high", delay: { after: 300 } },
   upload_file: { priority: "high", delay: { after: 500 } },
@@ -2291,6 +2299,86 @@ export const NODE_FIELD_CONFIGS = {
       label: "Endpoint (opcional)",
       type: "text",
       placeholder: "http://localhost:2001/api/actions/find_element",
+    },
+  ],
+
+  get_set_content: [
+    {
+      name: "selector",
+      label: "Selector",
+      type: "text",
+      placeholder: "#elemento o .clase",
+      required: true,
+      validation: (v) => {
+        if (!v || String(v).trim() === "") return "Selector requerido";
+        return null;
+      },
+    },
+    {
+      name: "action",
+      label: "Acción",
+      type: "select",
+      defaultValue: "get",
+      options: [
+        { value: "get", label: "Obtener (GET)" },
+        { value: "set", label: "Establecer (SET)" },
+      ],
+      required: true,
+    },
+    {
+      name: "contentType",
+      label: "Tipo de Contenido",
+      type: "select",
+      defaultValue: "text",
+      options: [
+        { value: "text", label: "Texto (textContent)" },
+        { value: "html", label: "HTML (innerHTML)" },
+        { value: "attribute", label: "Atributo HTML" },
+      ],
+      required: true,
+      hint: "Especifica qué tipo de contenido obtener o establecer",
+    },
+    {
+      name: "attribute",
+      label: "Nombre del Atributo",
+      type: "text",
+      placeholder: "src, href, data-id, value, etc.",
+      conditional: {
+        field: "contentType",
+        is: "attribute",
+      },
+      validation: (value, allParams) => {
+        if (
+          allParams.contentType === "attribute" &&
+          (!value || value.trim() === "")
+        ) {
+          return "El nombre del atributo es requerido cuando se selecciona 'Atributo HTML'";
+        }
+        return null;
+      },
+      hint: "Nombre del atributo HTML a obtener o modificar",
+    },
+    {
+      name: "value",
+      label: "Valor a Establecer",
+      type: "textarea",
+      placeholder: "Nuevo contenido o valor",
+      conditional: {
+        field: "action",
+        is: "set",
+      },
+      hint: "Contenido que se establecerá. Puede ser cadena vacía para limpiar.",
+    },
+    {
+      name: "clearBeforeSet",
+      label: "Limpiar antes de establecer",
+      type: "checkbox",
+      defaultValue: true,
+      conditional: {
+        field: "action",
+        is: "set",
+      },
+      hint: "Si está activo, limpia el contenido existente antes de establecer el nuevo valor",
     },
   ],
 

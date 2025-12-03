@@ -240,12 +240,21 @@ export const find_element = (payload) => {
 
 export const get_set_content = (payload) => {
   const action = asString(payload?.action, "get");
+  const contentType = asString(payload?.contentType, "text");
+
   const body = {
     selector: asString(payload?.selector),
     action: action,
+    contentType: contentType,
     browserId: asString(payload?.browserId),
   };
 
+  // Incluir attribute si contentType === "attribute"
+  if (contentType === "attribute") {
+    body.attribute = asString(payload?.attribute);
+  }
+
+  // Incluir campos para acción SET
   if (action === "set") {
     body.value = asString(payload?.value); // El valor puede ser intencionalmente vacío
     body.clearBeforeSet = asBoolean(payload?.clearBeforeSet, true);
